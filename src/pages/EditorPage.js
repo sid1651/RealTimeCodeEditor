@@ -4,74 +4,112 @@ import Editor from '../components/Editor';
 import { initSocket } from '../socket';
 import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import Actions from '../Actions';   // ✅ import Action
+import ACTIONS from '../Actions';
 
 const EditorPage = () => {
     const socketRef = useRef(null);
     const location = useLocation();
     const reactNavigator = useNavigate();
     const { roomId } = useParams();
-    console.log('roomId:', roomId);
-     const [clients, setClients] = useState([
-       
-    ]);
+
+    const [clients, setClients] = useState([]);
 
     useEffect(() => {
         const init = async () => {
             socketRef.current = await initSocket();
 
+            // ✅ Reset clients when connected (prevents duplicates after server restart)
+            socketRef.current.on('connect', () => {
+                console.log('Connected to server:', socketRef.current.id);
+                setClients([]); // Clear old clients
+            });
+
             socketRef.current.on('connect_error', handleErrors);
             socketRef.current.on('connect_failed', handleErrors);
 
             function handleErrors(err) {
-                console.log('Socket connection error:', err);
-                toast.error('Socket connection error. Please try again later.');
+                console.error('Socket connection error:', err);
+                toast.error('Socket connection failed. Please try again later.');
                 reactNavigator('/');
             }
 
-            socketRef.current.emit(Actions.JOIN, {   // ✅ use Action.JOIN
+            // ✅ Emit JOIN event
+            socketRef.current.emit(ACTIONS.JOIN, {
                 roomId,
-                username: location.state?.username
+                username: location.state?.username,
             });
 
-            socketRef.current.on(Actions.JOINED, ({ clients, username, socketId }) => {
-                console.log('Joined:', clients, username, socketId);
-                if(username!== location.state?.username) {
+            // ✅ When a user joins
+            socketRef.current.on(ACTIONS.JOINED, ({ clients, username, socketId }) => {
+                console.log('Joined:', clients);
+                if (username !== location.state?.username) {
                     toast.success(`${username} has joined the room!`);
-                    console.log(`${username} has joined the room!`);
                 }
-                setClients(clients);
+                setClients(clients); // Always replace the entire client list
+            });
+
+            // ✅ When a user disconnects
+            socketRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
+                toast.success(`${username} has left the room`);
+                setClients((prev) => prev.filter((client) => client.socketId !== socketId));
             });
         };
+
         init();
+
+        // ✅ Cleanup to prevent duplicate listeners & stale connections
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect(); // Proper disconnect
+                socketRef.current.off(ACTIONS.JOINED);
+                socketRef.current.off(ACTIONS.DISCONNECTED);
+            }
+        };
     }, []);
 
-   
+    // ✅ Copy Room ID
+    async function copyRoomId() {
+        try {
+            await navigator.clipboard.writeText(roomId);
+            toast.success('Room ID copied!');
+        } catch (err) {
+            toast.error('Failed to copy Room ID');
+        }
+    }
+
+    // ✅ Leave Room
+    function leaveRoom() {
+        reactNavigator('/');
+    }
 
     if (!location.state) {
-        return <Navigate to="/" />;   // ✅ use Navigate with capital N
+        return <Navigate to="/" />;
     }
 
     return (
-        <div className='mainWrape'>
-            <div className='aside'>
-                <div className='asideInner'>
-                    <div className='logo'>
-                        <img src='/logo-dark.png' alt='logo' className='logo' />
+        <div className="mainWrape">
+            <div className="aside">
+                <div className="asideInner">
+                    <div className="logo">
+                        <img src="/logo-dark.png" alt="logo" className="logo" />
                         <h2>Kódikos</h2>
                     </div>
-                    <h3>conected</h3>
-                    <div className='clientList'>
+                    <h3>Connected Users</h3>
+                    <div className="clientList">
                         {clients.map((client) => (
-                            <Client key={client.socket} username={client.username} />
+                            <Client key={client.socketId} username={client.username} />
                         ))}
                     </div>
                 </div>
-                <button className='btn copyBtn'>Copy Room Id</button>
-                <button className='btn LeaveBtn'>Exit Room</button>
+                <button className="btn copyBtn" onClick={copyRoomId}>
+                    Copy Room Id
+                </button>
+                <button className="btn LeaveBtn" onClick={leaveRoom}>
+                    Exit Room
+                </button>
             </div>
-            <div className='editorWrap'>
-                <Editor />
+            <div className="editorWrap">
+                <Editor socketRef={socketRef} roomId={roomId} />
             </div>
         </div>
     );
