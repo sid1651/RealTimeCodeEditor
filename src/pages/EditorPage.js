@@ -8,6 +8,7 @@ import ACTIONS from '../Actions';
 
 const EditorPage = () => {
     const socketRef = useRef(null);
+    const codeRef=useRef(null)
     const location = useLocation();
     const reactNavigator = useNavigate();
     const { roomId } = useParams();
@@ -45,7 +46,11 @@ const EditorPage = () => {
                 if (username !== location.state?.username) {
                     toast.success(`${username} has joined the room!`);
                 }
-                setClients(clients); // Always replace the entire client list
+                setClients(clients); 
+                socketRef.current.emit(ACTIONS.SYNC_CODE,{
+                    code:codeRef.current,
+                    socketId,
+                })
             });
 
             // ✅ When a user disconnects
@@ -109,7 +114,9 @@ const EditorPage = () => {
                 </button>
             </div>
             <div className="editorWrap">
-                <Editor socketRef={socketRef} roomId={roomId} />
+                <Editor socketRef={socketRef} roomId={roomId} onCodeChange={(code)=>{
+                    codeRef.current=code
+                }} />
             </div>
         </div>
     );
