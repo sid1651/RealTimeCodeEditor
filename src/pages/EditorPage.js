@@ -92,8 +92,9 @@ const EditorPage = () => {
     }
 
     return (
-        <div className="mainWrape">
-            <div className="aside">
+        <div className="mainWrape row">
+            <div className='col-12'>
+            <div className="aside" style={{height: "100vh"}}>
                 <div className="asideInner">
                     <div className="logo">
                         <img src="/logo-dark.png" alt="logo" className="logo" />
@@ -106,17 +107,22 @@ const EditorPage = () => {
                         ))}
                     </div>
                 </div>
+                <div className='d-flex-row align-items-end justify-content-center'>
                 <button className="btn copyBtn" onClick={copyRoomId}>
                     Copy Room Id
                 </button>
                 <button className="btn LeaveBtn" onClick={leaveRoom}>
                     Exit Room
                 </button>
+                </div>
             </div>
+            </div>
+            <div className='col-12'>
             <div className="editorWrap">
                 <Editor socketRef={socketRef} roomId={roomId} onCodeChange={(code)=>{
                     codeRef.current=code
                 }} />
+            </div>
             </div>
         </div>
     );
