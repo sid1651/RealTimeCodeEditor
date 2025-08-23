@@ -7,6 +7,12 @@ const io = new Server(server);
 app.use(express.static('build'));
 const userSocketMap = {};
 const ACTIONS = require('./src/Actions'); // ✅ correct import
+const nodemailer=require('nodemailer');
+
+
+
+
+
 
 function getAllConnectedClients(roomId) {
     return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map((socketId) => {

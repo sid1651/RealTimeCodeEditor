@@ -92,8 +92,8 @@ const EditorPage = () => {
     }
 
     return (
-        <div className="mainWrape row">
-            <div className='col-12'>
+        <div className="mainWrape row" style={{overflowX: "hidden"}}>
+            <div className='col-12 p-0'>
             <div className="aside" style={{height: "100vh"}}>
                 <div className="asideInner">
                     <div className="logo">
@@ -117,7 +117,7 @@ const EditorPage = () => {
                 </div>
             </div>
             </div>
-            <div className='col-12'>
+            <div className='col-12' style={{width: "100%"}}>
             <div className="editorWrap">
                 <Editor socketRef={socketRef} roomId={roomId} onCodeChange={(code)=>{
                     codeRef.current=code
