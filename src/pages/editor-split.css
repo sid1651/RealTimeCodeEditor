@@ -1,0 +1,53 @@
+/* editor-split.css (or paste into App.css) */
+.split-wrap {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 80px); /* adjust if needed */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  height: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.02);
+}
+
+/* header acts as drag handle */
+.editorHeader {
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.02);
+  color: #eaeaff;
+  font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+.editorHeader:active { cursor: grabbing; }
+
+.panelBody {
+  flex: 1;
+  min-height: 0; /* important for child scroll */
+  overflow: hidden;
+}
+
+/* splitter between panels */
+.splitter {
+  width: 8px;
+  cursor: col-resize;
+  background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));
+  transition: background 0.12s;
+}
+.splitter:hover {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.04));
+}
+
+/* make CodeMirror fill panel */
+.panelBody .CodeMirror {
+  height: 100% !important;
+  width: 100% !important;
+}

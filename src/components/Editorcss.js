@@ -2,20 +2,20 @@ import React, { useEffect, useRef } from 'react';
 import Codemirror from 'codemirror';
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/dracula.css';
-import 'codemirror/mode/javascript/javascript';
+import 'codemirror/mode/css/css';
 import 'codemirror/addon/edit/closetag';
 import 'codemirror/addon/edit/closebrackets';
 import ACTIONS from '../Actions';
 
-
-const Editor = ({ socketRef, roomId,onCodeChange }) => {
+const EditorCSS = ({ socketRef, roomId, onCodeChange }) => {
     const editorRef = useRef(null);
+
     useEffect(() => {
         async function init() {
             editorRef.current = Codemirror.fromTextArea(
-                document.getElementById('realtimeEditor'),
+                document.getElementById('realtimeEditorCSS'),
                 {
-                    mode: { name: 'javascript', json: true },
+                    mode: 'css',
                     theme: 'dracula',
                     autoCloseTags: true,
                     autoCloseBrackets: true,
@@ -26,8 +26,8 @@ const Editor = ({ socketRef, roomId,onCodeChange }) => {
             editorRef.current.on('change', (instance, changes) => {
                 const { origin } = changes;
                 const code = instance.getValue();
-                onCodeChange(code)
-                if (origin !== 'setValue') {
+                onCodeChange(code);
+                if (origin !== 'setValue' && socketRef.current) {
                     socketRef.current.emit(ACTIONS.CODE_CHANGE, {
                         roomId,
                         code,
@@ -47,13 +47,12 @@ const Editor = ({ socketRef, roomId,onCodeChange }) => {
 });
 
         }
-
         return () => {
-            socketRef.current.off(ACTIONS.CODE_CHANGE);
+            socketRef.current?.off(ACTIONS.CODE_CHANGE);
         };
     }, [socketRef.current]);
 
-    return <textarea id="realtimeEditor"></textarea>;
+    return <textarea id="realtimeEditorCSS"></textarea>;
 };
 
-export default Editor;
+export default EditorCSS;

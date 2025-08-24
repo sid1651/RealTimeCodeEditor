@@ -1,4 +1,4 @@
-/* Full page wrapper with gradient background */
+/* ---------- Page & form styles (unchanged, cleaned) ---------- */
 .homePageWrapper {
   min-height: 100vh;
   display: flex;
@@ -11,7 +11,6 @@
   padding: 20px;
 }
 
-/* Form box styling */
 .formWrapper {
   background: rgba(30, 30, 47, 0.95);
   border: 1px solid #3a3a55;
@@ -25,7 +24,6 @@
   gap: 20px;
 }
 
-/* Logo container */
 .logoContainer {
   display: flex;
   flex-direction: column;
@@ -47,7 +45,6 @@
   margin: 0;
 }
 
-/* Label */
 .mainlabel {
   font-weight: 500;
   font-size: 1rem;
@@ -55,12 +52,7 @@
   color: #b0b0d0;
 }
 
-/* Input styling */
-.inputGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+.inputGroup { display: flex; flex-direction: column; gap: 15px; }
 
 .inputBox {
   padding: 12px 15px;
@@ -72,13 +64,8 @@
   font-size: 0.95rem;
   transition: all 0.2s ease;
 }
+.inputBox:focus { border: 1px solid #6F42C1; background-color: #2f2f4a; }
 
-.inputBox:focus {
-  border: 1px solid #6F42C1;
-  background-color: #2f2f4a;
-}
-
-/* Join button */
 .btn.joinBtn {
   background: linear-gradient(135deg, #1DA1F2, #6F42C1);
   border: none;
@@ -90,226 +77,192 @@
   color: white;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.btn.joinBtn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(111, 66, 193, 0.5); }
 
-.btn.joinBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(111, 66, 193, 0.5);
-}
+.createInfo { font-size: 0.85rem; text-align: center; color: #a0a0c0; }
+.createNewBtn { color: #1DA1F2; text-decoration: none; font-weight: bold; }
+.createNewBtn:hover { text-decoration: underline; }
 
-/* Create new room link */
-.createInfo {
-  font-size: 0.85rem;
-  text-align: center;
-  color: #a0a0c0;
-}
-
-.createNewBtn {
-  color: #1DA1F2;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.createNewBtn:hover {
-  text-decoration: underline;
-}
-
-/* Footer styling */
 footer {
   margin-top: 30px;
   text-align: center;
   font-size: 0.85rem;
   color: #b0b0d0;
 }
+#gitbut { color: #1DA1F2; text-decoration: none; }
+#gitbut:hover { text-decoration: underline; }
 
-#gitbut {
-  color: #1DA1F2;
-  text-decoration: none;
-}
-
-#gitbut:hover {
-  text-decoration: underline;
-}
-/* Global background */
+/* ---------- Global / Layout ---------- */
 body {
-    background: #0d0d1a;
-    color: #cfcff9;
-    font-family: 'Poppins', sans-serif;
+  background: #0d0d1a;
+  color: #cfcff9;
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
 }
 
-/* Main wrapper */
+/* main wrapper: sidebar + editor area */
 .mainWrape {
-    display: grid;
-    height: 100vh;
-    grid-template-columns: 230px 1fr;
+  display: grid;
+  height: 100vh;
+  grid-template-columns: 230px 1fr;
+  gap: 0;
 }
 
-/* Sidebar (aside) */
+/* sidebar */
 .aside {
-    background: #111122;
-    width: 260px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 20px;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.4);
+  background: #111122;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.4);
 }
+.asideInner { flex: 1; }
 
-/* Inner content of sidebar */
-.asideInner {
- 
-    flex: 1;
-}
-
-/* Logo styling */
 .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* space between logo and text */
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-
-.logo img {
-    width: 40px;
-    height: 40px;
-}
-
+.logo img { width: 40px; height: 40px; }
 .logo h2 {
-    font-size: 1rem;
-    font-weight: 600;
-    background: linear-gradient(90deg, #3f87f5, #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #3f87f5, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
 }
 
-
-/* Clients list */
+/* clients */
 .clientList {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .client {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    background: rgba(255, 255, 255, 0.05);
-    padding: 8px 12px;
-    border-radius: 8px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.client:hover {
-    transform: translateY(-2px);
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3);
-}
+.client:hover { transform: translateY(-2px); box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.3); }
 
-/* Buttons */
 .btn {
-    margin-top: 10px;
-    padding: 10px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-   width: 95%;
-    color: white;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 95%;
+  color: white;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0px 4px 15px rgba(63, 135, 245, 0.5);
-}
+.btn:hover { transform: translateY(-2px); box-shadow: 0px 4px 15px rgba(63, 135, 245, 0.5); }
+.copyBtn { background: linear-gradient(135deg, #3f87f5, #612dd8); }
+.LeaveBtn { background: linear-gradient(135deg, #e75e5e, #e32424); }
 
-.copyBtn {
-    background: linear-gradient(135deg, #3f87f5, #612dd8);
-}
-.LeaveBtn {
-    background: linear-gradient(135deg, #e75e5e, #e32424);
-}
-
-/* Editor section */
+/* ---------- Editor area: three equal editors ---------- */
 .editorWrap {
-    flex: 1;
-    background: #0f0f1f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  height: 100vh;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+  background: #0f0f1f;
+  position: relative; /* optional */
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-    width: 6px;
+/* each editor container gets equal space */
+.editorContainer {
+  flex: 1; /* each editor gets equal space */
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.03);
+  position: relative; /* remove absolute if it was added */
 }
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+
+/* give a small header area if you want to add filename tabs later */
+.editorHeader {
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #cfcff9;
+  background: rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(255,255,255,0.02);
 }
+
+
+/* CodeMirror should fill container */
+.editorBody {
+  flex: 1 1 0;
+  min-height: 0;   /* important for children to be able to scroll */
+  display: block;
+}
+
+/* CodeMirror core styling (fill container) */
 .CodeMirror {
-   min-height: 100vh;
-    
-    width: 100%;
-    font-size: 14px;
-    background-color: #0000ff;
-    color: #cfcff9;
+  height: 100%;
+  width: 100%;
+  font-size: 14px;
+  background-color: #0b0b1b; 
+  color: #cfcff9;
+  border-radius: 6px;
+  box-sizing: border-box;
+  overflow: auto;
 }
+
+/* If your textarea has a class .realtimeEditor set height 100% */
 .realtimeEditor {
-    height: 100%;
-    width: 100%;
-    
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+.preview {
+  background: linear-gradient(90deg, #34d399, #059669); /* teal gradient */
+  color: white;
+  font-weight: bold;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 95%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.preview:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 
+/* ---------- Scrollbar styling ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }
 
-
-/* Tablets and small laptops */
-@media (max-width: 768px) {
-  .formWrapper {
-    padding: 30px 25px;
-    max-width: 350px;
-  }
-
-  .logo {
-    width: 60px;
-  }
-
-  .logoContainer h2 {
-    font-size: 1.4rem;
-  }
+/* ---------- Responsive: stack editors on small screens ---------- */
+@media (max-width: 1000px) {
+  .mainWrape { grid-template-columns: 200px 1fr; }
+  .editorWrap { flex-direction: column; height: auto; padding: 6px; }
+  .editorContainer { width: 100%; height: 33vh; } /* each about a third of viewport height */
+  .CodeMirror { height: 100%; }
 }
 
-/* Mobile devices */
-@media (max-width: 480px) {
-  .formWrapper {
-    padding: 25px 20px;
-    max-width: 90%;
-  }
-
-  .logo {
-    width: 55px;
-  }
-
-  .logoContainer h2 {
-    font-size: 1.2rem;
-  }
-
-  .inputBox {
-    font-size: 0.9rem;
-    padding: 10px 12px;
-  }
-
-  .btn.joinBtn {
-    font-size: 0.9rem;
-    padding: 10px;
-  }
-
-  .mainlabel {
-    font-size: 0.9rem;
-  }
-
-  .createInfo {
-    font-size: 0.8rem;
-  }
+@media (max-width: 600px) {
+  .mainWrape { grid-template-columns: 1fr; } /* collapse sidebar too on tiny screens */
+  .aside { display: none; }                 /* optionally hide sidebar on mobile */
+  .editorWrap { padding: 4px; }
+  .editorContainer { height: 30vh; }
 }
-
