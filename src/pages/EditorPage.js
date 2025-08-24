@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import Preview from '../components/preview';
 import './editor-split.css';
+import { Rnd } from 'react-rnd';
 
 const EditorPage = () => {
     const socketJSRef = useRef(null);
@@ -182,7 +183,7 @@ const EditorPage = () => {
             </div>
 
             <div className="col-12" style={{ width: '100%' }}>
-                <div className="editorWrap" style={{ display: 'flex', gap: '4px' }}>
+                <div className="editorWrap" style={{ display: 'flex', gap: '4px' ,position:'relative' }}>
                     <div style={{ flex: 1 }} className="editorContainer">
                         <Editor
                             socketRef={socketJSRef}
