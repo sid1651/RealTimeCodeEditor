@@ -7,7 +7,7 @@ const io = new Server(server);
 app.use(express.static('build'));
 const userSocketMap = {};
 const ACTIONS = require('./src/Actions'); // ✅ correct import
-const roomCodeMap = {}; // { roomId: { javascript, htmlmixed, css } }
+const roomCodeMap = {}; 
 
 
 function getAllConnectedClients(roomId) {
