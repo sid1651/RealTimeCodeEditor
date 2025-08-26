@@ -49,13 +49,28 @@ const EditorPage = () => {
                 socketHTMLRef.current.emit(ACTIONS.JOIN, joinPayload);
                 socketCSSRef.current.emit(ACTIONS.JOIN, joinPayload);
 
+                // ✅ When a new user joins, sync all code to them
                 socketJSRef.current.on(ACTIONS.JOINED, ({ clients: joinedClients, username, socketId }) => {
                     if (username !== location.state?.username) {
                         toast.success(`${username} has joined the room!`);
                     }
                     setClients(joinedClients);
+
+                    // ✅ Send JS code
                     socketJSRef.current.emit(ACTIONS.SYNC_CODE, {
-                        code: codeRef.current,
+                        javascript: codeRef.current.javascript,
+                        socketId,
+                    });
+
+                    // ✅ Send HTML code
+                    socketHTMLRef.current.emit(ACTIONS.SYNC_CODE, {
+                        htmlmixed: codeRef.current.htmlmixed,
+                        socketId,
+                    });
+
+                    // ✅ Send CSS code
+                    socketCSSRef.current.emit(ACTIONS.SYNC_CODE, {
+                        css: codeRef.current.css,
                         socketId,
                     });
                 });
