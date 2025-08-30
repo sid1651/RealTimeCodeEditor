@@ -7,7 +7,7 @@ const io = new Server(server);
 app.use(express.static('build'));
 const userSocketMap = {};
 const ACTIONS = require('./src/Actions'); // ✅ correct import
-const roomCodeMap = {}; 
+const roomCodeMap = {}; // { roomId: { javascript, htmlmixed, css } }
 
 
 function getAllConnectedClients(roomId) {
@@ -40,14 +40,13 @@ io.on('connection', (socket) => {
         });
     });
 
-socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
-    socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { htmlmixed: code });
-});
+socket.on(ACTIONS.CODE_CHANGE,({roomId,code})=>{
+    socket.in(roomId).emit(ACTIONS.CODE_CHANGE,{code})
+})
 
-socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
-    io.to(socketId).emit(ACTIONS.CODE_CHANGE, { htmlmixed: code });
-});
-
+socket.on(ACTIONS.SYNC_CODE,({socketId,code})=>{
+    io.to(socketId).emit(ACTIONS.CODE_CHANGE,{code})
+})
 
     socket.on('disconnecting',()=>{
         const rooms=[...socket.rooms]

@@ -62,7 +62,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
         if (origin !== 'setValue' && socketRef?.current) {
           socketRef.current.emit(ACTIONS.CODE_CHANGE, {
             roomId,
-            javascript: code, // ✅ correct key
+           code, // ✅ correct key
           });
         }
       });
@@ -82,15 +82,19 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
   }, []); // run once
 
   useEffect(() => {
-    if (!socketRef?.current) return;
-    const handler = ({ javascript }) => {
-      if (typeof javascript === 'string' && editorRef.current) {
-        editorRef.current.setValue(javascript);
-      }
-    };
-    socketRef.current.on(ACTIONS.CODE_CHANGE, handler);
-    return () => socketRef.current?.off(ACTIONS.CODE_CHANGE, handler);
-  }, [socketRef]);
+        if (socketRef.current) {
+            socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code }) => {
+    if (typeof code === "string") {
+        editorRef.current.setValue(code);
+    }
+});
+
+        }
+
+        return () => {
+            socketRef.current.off(ACTIONS.CODE_CHANGE);
+        };
+    }, [socketRef.current]);
 
   return (
     <div
