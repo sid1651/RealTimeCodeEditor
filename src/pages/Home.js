@@ -50,7 +50,7 @@ const Home = () => {
                 </div>
             </div>
             <foter>
-                <h4>Check the code in <a id='gitbut' href='#'>git hub</a></h4>
+                <h7>© 2025 Kódikos — Built for collaborative learning & building.</h7>
             </foter>
         </div>
     )
