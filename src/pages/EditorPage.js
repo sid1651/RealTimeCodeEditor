@@ -8,7 +8,7 @@ import { initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
 import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
-import Preview from '../components/preview';
+
 import './editor-split.css';
 import { Rnd } from 'react-rnd';
 
@@ -171,7 +171,7 @@ const EditorPage = () => {
                     </div>
 
                     <div className="d-flex-row align-items-end justify-content-center">
-                        <Preview htmlCode={htmlCode} cssCode={cssCode} jsCode={jsCode} />
+                        
                         <button className="btn copyBtn" onClick={copyRoomId}>
                             Copy Room Id
                         </button>
