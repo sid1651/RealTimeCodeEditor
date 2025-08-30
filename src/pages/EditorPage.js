@@ -14,9 +14,9 @@ const EditorPage = () => {
   const socketCSSRef = useRef(null);
 
   const codeRef = useRef({ javascript: '', htmlmixed: '', css: '' });
-  const [jsCode, setJsCode] = useState('');
-  const [htmlCode, setHtmlCode] = useState('');
-  const [cssCode, setCssCode] = useState('');
+  const [jsCode, setJsCode] = useState(localStorage.getItem("jsCode") || "");
+  const [htmlCode, setHtmlCode] = useState(localStorage.getItem("htmlCode") || "");
+  const [cssCode, setCssCode] = useState(localStorage.getItem("cssCode") || "");
   const [isCollapsed, setIsCollapsed] = useState(false); // sidebar collapsed
   const [Colaps, setColaps] = useState(false); // preview collapsed
 
@@ -24,7 +24,17 @@ const EditorPage = () => {
   const reactNavigator = useNavigate();
   const { roomId } = useParams();
   const [clients, setClients] = useState([]);
+  useEffect(() => {
+    localStorage.setItem("jsCode", jsCode);
+  }, [jsCode]);
 
+  useEffect(() => {
+    localStorage.setItem("htmlCode", htmlCode);
+  }, [htmlCode]);
+
+  useEffect(() => {
+    localStorage.setItem("cssCode", cssCode);
+  }, [cssCode]);
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -225,6 +235,7 @@ const EditorPage = () => {
                   setJsCode(code);
                 }}
               />
+              <h6 style ={{display:"flex"}}>Javascript</h6>
             </div>
 
             <div style={{ flex: 1 }} className="editorContainer">
@@ -239,6 +250,7 @@ const EditorPage = () => {
                   setHtmlCode(code);
                 }}
               />
+              <h6 style ={{display:"flex"}}>Html</h6>
             </div>
 
             <div style={{ flex: 1 }} className="editorContainer">
@@ -253,6 +265,7 @@ const EditorPage = () => {
                   setCssCode(code);
                 }}
               />
+              <h6 style ={{display:"flex"}}>Css</h6>
             </div>
           </div>
 
