@@ -62,6 +62,138 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/m
 This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
 
 ### Deployment
+Kodikos - Real-Time Collaborative Code Editor
+
+Kodikos is a real-time collaborative code editor that allows multiple users to write and edit code simultaneously in the same room. Built using modern web technologies, it provides a smooth and interactive coding experience with live updates, authentication, and secure communication.
+
+✨ Features
+
+✅ Real-Time Collaboration using Socket.IO (one server per room, instant code sync)
+
+✅ Multi-language Code Editor (HTML, CSS, JS using CodeMirror)
+
+✅ User Authentication (JWT-based secure login/signup)
+
+✅ Room-Based Sessions (unique room IDs for collaborative editing)
+
+✅ Responsive UI built with React
+
+✅ REST API Integration for user management and session handling
+
+✅ Database Support (MongoDB for users & room data)
+
+✅ Scalable Architecture with Express backend & WebSocket integration
+
+🛠 Tech Stack
+
+Frontend: React, CodeMirror, Socket.IO Client
+
+Backend: Node.js, Express.js, Socket.IO
+
+Database: MongoDB (Mongoose for ORM)
+
+Authentication: JWT (JSON Web Token)
+
+Styling: CSS / TailwindCSS (if used)
+
+Others: REST API, bcrypt for password hashing
+
+📂 Project Structure
+kodikos/
+├── client/               # React frontend
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── App.js
+│   │   └── index.js
+├── server/               # Node.js backend
+│   ├── controllers/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   ├── server.js
+│   └── Actions.js
+├── .env                  # Environment variables
+├── package.json
+└── README.md
+
+⚙️ Installation & Setup
+1. Clone the repository
+git clone https://github.com/your-username/kodikos.git
+cd kodikos
+
+2. Setup Environment Variables
+
+Create a .env file in the server directory with the following variables:
+
+PORT=5000
+MONGO_URI=your_mongo_connection_string
+JWT_SECRET=your_jwt_secret
+
+3. Install dependencies
+Backend
+cd server
+npm install
+
+Frontend
+cd ../client
+npm install
+
+4. Run the application
+Backend
+cd server
+npm start
+
+Frontend
+cd client
+npm start
+
+▶️ How It Works
+
+User Authentication
+
+Sign up or log in (credentials stored in MongoDB with hashed passwords using bcrypt).
+
+JWT tokens generated for secure sessions.
+
+Create/Join Room
+
+Each room has a unique Room ID.
+
+Users can share the Room ID with others to join the same coding session.
+
+Real-Time Collaboration
+
+Code changes in one user’s editor instantly reflect in all connected users' editors using Socket.IO.
+
+One server per room ensures isolated sessions.
+
+Security
+
+JWT for authentication.
+
+Room-based socket namespaces to prevent unauthorized access.
+
+🖼️ Screenshots
+
+(Add images later if available)
+
+🚀 Deployment
+
+Frontend: Vercel / Netlify
+
+Backend: Render / Railway / AWS / DigitalOcean
+
+Database: MongoDB Atlas
+
+📜 License
+
+This project is licensed under the MIT License.
+
+✅ Do you want me to include detailed commands for running in development mode vs production, API endpoints documentation, and socket event documentation inside this README? Or keep it simple and clean like above?
+
+Also, should I add a section for future enhancements (like Monaco editor, theme support, file system integration)?
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
 
