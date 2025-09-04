@@ -12,26 +12,26 @@ const EditorCSS = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false,
   const editorRef = useRef(null);
   const wrapperRef = useRef(null);
 
-  const computeWidth = () => {
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1920;
-    const scale = (base) => Math.round((base / 1920) * screenW);
-    const px = (() => {
-      if (isClientCollapsed && isPreviewCollapsed) return scale(1740);
-      if (isClientCollapsed) return scale(1140);
-      if (isPreviewCollapsed) return scale(1500);
-      return scale(990);
-    })();
-    return `${Math.max(px, 300)}px`;
-  };
+  // const computeWidth = () => {
+  //   const screenW = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  //   const scale = (base) => Math.round((base / 1920) * screenW);
+  //   const px = (() => {
+  //     if (isClientCollapsed && isPreviewCollapsed) return scale(1740);
+  //     if (isClientCollapsed) return scale(1140);
+  //     if (isPreviewCollapsed) return scale(1500);
+  //     return scale(990);
+  //   })();
+  //   return `${Math.max(px, 300)}px`;
+  // };
 
-  const [width, setWidth] = useState(computeWidth);
+  // const [width, setWidth] = useState(computeWidth);
 
-  useEffect(() => {
-    const onResize = () => setWidth(computeWidth());
-    window.addEventListener('resize', onResize);
-    setWidth(computeWidth());
-    return () => window.removeEventListener('resize', onResize);
-  }, [isClientCollapsed, isPreviewCollapsed]);
+  // useEffect(() => {
+  //   const onResize = () => setWidth(computeWidth());
+  //   window.addEventListener('resize', onResize);
+  //   setWidth(computeWidth());
+  //   return () => window.removeEventListener('resize', onResize);
+  // }, [isClientCollapsed, isPreviewCollapsed]);
 
   useEffect(() => {
     let mounted = true;
@@ -96,8 +96,8 @@ const EditorCSS = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false,
     <div
       ref={wrapperRef}
       style={{
-        height: '200px',
-        width,
+        height: '100%',
+        // width,
         overflow: 'auto',
         borderRadius: '6px',
         border: '1px solid rgba(255,255,255,0.1)',
