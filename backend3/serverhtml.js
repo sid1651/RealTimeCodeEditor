@@ -6,13 +6,8 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 app.use(express.static('build'));
 const userSocketMap = {};
-const ACTIONS = require('./src/Actions'); // ✅ correct import
+const ACTIONS = require('../src/Actions'); // ✅ correct import
 const roomCodeMap = {}; // { roomId: { javascript, htmlmixed, css } }
-
-
-
-
-
 
 
 function getAllConnectedClients(roomId) {
@@ -66,7 +61,7 @@ socket.on(ACTIONS.SYNC_CODE,({socketId,code})=>{
     })
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 server.listen(PORT,'0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });

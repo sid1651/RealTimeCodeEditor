@@ -9,16 +9,16 @@ const baseOptions = {
 };
 
 export const initSocketJS = async () => {
-  const backend = process.env.REACT_APP_BACKEND_JS || 'http://localhost:5000';
+  const backend = process.env.REACT_APP_BACKEND_JS ;
   return io(backend, baseOptions);
 };
 
 export const initSocketHTML = async () => {
-  const backend = process.env.REACT_APP_BACKEND_HTML || 'http://localhost:5001';
+  const backend = process.env.REACT_APP_BACKEND_HTML ;
   return io(backend, baseOptions);
 };
 
 export const initSocketCSS = async () => {
-  const backend = process.env.REACT_APP_BACKEND_CSS || 'http://localhost:5002';
+  const backend = process.env.REACT_APP_BACKEND_CSS ;
   return io(backend, baseOptions);
 };
