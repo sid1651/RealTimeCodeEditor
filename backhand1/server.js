@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 app.use(express.static('build'));
 const userSocketMap = {};
-const ACTIONS = require('./src/Actions'); // ✅ correct import
+const ACTIONS = require('../src/Actions'); // ✅ correct import
 const roomCodeMap = {}; // { roomId: { javascript, htmlmixed, css } }
 
 

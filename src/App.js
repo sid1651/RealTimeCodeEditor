@@ -6,6 +6,9 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './pages/landingpage';
 import Signlog from './pages/signlog';
 import Signup from './pages/signup';
+import { ToastContainer } from 'react-toastify';
+
+
 
 function App() {
   return (
@@ -24,13 +27,17 @@ function App() {
 
     </div>
     <BrowserRouter>
+    
+    <ToastContainer />
       <Routes>
+         
         <Route path="/signup" element={<Signup/>}></Route>
         <Route path="/sigin" element={<Signlog/>}></Route>
         <Route path="/" element ={<LandingPage/>}></Route>
         <Route path="/home" element={<Home />} ></Route>
         <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
       </Routes>
+      
     </BrowserRouter>
     </>
   );
