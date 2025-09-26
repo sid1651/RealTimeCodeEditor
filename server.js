@@ -6,7 +6,7 @@ const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: { origin: "*" },
 });
-
+require('dotenv').config(); 
 app.use(express.static('build'));
 
 const userSocketMap = {};
@@ -68,7 +68,7 @@ setupNamespace('/js');
 setupNamespace('/html');
 setupNamespace('/css');
 
-const PORT =  5000;
-server.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT||5000;
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
