@@ -1,4 +1,5 @@
 const express = require('express');
+
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
@@ -9,8 +10,13 @@ const io = new Server(server, {
 require('dotenv').config(); 
 app.use(express.static('build'));
 
+
 const userSocketMap = {};
 const ACTIONS = require('./src/Actions'); // adjust path if needed
+const path = require('path');
+app.use((req,res,next)=>{
+res.sendFile(path.join(__dirname,'build','index.html'))
+})
 
 function getAllConnectedClients(roomId, namespace) {
   return Array.from(io.of(namespace).adapter.rooms.get(roomId) || []).map((socketId) => {

@@ -32,12 +32,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start:front": "react-scripts start",
+    "start": "npm build && npm server:prod",
     "build": "react-scripts build",
-    "server:js": "nodemon serverjs.js",
-    "server:html": "nodemon serverhtml.js",
-    "server:css": "nodemon servercss.js",
-    "server:all": "concurrently \"npm run server:js\" \"npm run server:html\" \"npm run server:css\"",
+    "server:dev":"nodemon node server.js",
+    "server:prod":"node server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
