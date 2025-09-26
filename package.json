@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.7.0",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "axios": "^1.12.1",
     "bcryptjs": "^3.0.2",
     "codemirror": "^5.65.16",
@@ -17,7 +13,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.0",
     "nodemailer": "^7.0.5",
-    "nodemon": "^3.1.10",
     "react": "^19.1.1",
     "react-avatar": "^5.0.4",
     "react-dom": "^19.1.1",
@@ -31,12 +26,20 @@
     "uuid": "^11.1.0",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.7.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.10"
+  },
   "scripts": {
-    "start:front": "react-scripts start",
-    "start": "npm build && npm server:prod",
+    "start": "node server.js",
     "build": "react-scripts build",
-    "server:dev":"nodemon node server.js",
-    "server:prod":"node server.js",
+    "server": "nodemon node server.js",
+    "client": "react-scripts start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
