@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import {useNavigate} from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { KeyRound, User, LogIn } from 'lucide-react';
+
 const Home = () => {
     const navigate = useNavigate();
      const[roomId, setRoomId] = useState('');
@@ -35,7 +38,12 @@ const Home = () => {
     }
     return (
         <div className='homePageWrapper'>
-            <div className='formWrapper'>
+            <motion.div 
+                className='formWrapper'
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+            >
                 <div className='logoContainer'>
                     <img src='/logo-dark.png' alt='logo' className='logo' />
                     <h2>Kódikos</h2>
@@ -43,15 +51,21 @@ const Home = () => {
 
                 <h4 className='mainlabel'>Paste invitation room ID</h4>
                 <div className='inputGroup'>
-                    <input onKeyUp={handleInputEnter} onChange={(e)=>setRoomId(e.target.value)} value ={roomId} type='text' className='inputBox' placeholder='Room ID' />
-                    <input onChange={(e)=>setUsername(e.target.value)}value={username}type='text' className='inputBox' placeholder='Username' />
-                    <button onClick={joinRoom} className='btn joinBtn'>Join</button>
-                    <span className='createInfo'> if you  don't have an invite then create  <a onClick={(e)=>{e.preventDefault();CreateNewRoom(e);}} href='#' className='createNewBtn'>new room</a></span>
+                    <div className="inputWrapper">
+                        <KeyRound className="inputIcon" size={18} />
+                        <input onKeyUp={handleInputEnter} onChange={(e)=>setRoomId(e.target.value)} value ={roomId} type='text' className='inputBox' placeholder='Room ID' />
+                    </div>
+                    <div className="inputWrapper">
+                        <User className="inputIcon" size={18} />
+                        <input onChange={(e)=>setUsername(e.target.value)} value={username} type='text' className='inputBox' placeholder='Username' />
+                    </div>
+                    <button onClick={joinRoom} className='btn-primary joinBtn'><LogIn size={18} /> Join Room</button>
+                    <span className='createInfo'> Don't have an invite? Create a <a onClick={(e)=>{e.preventDefault();CreateNewRoom(e);}} href='#' className='createNewBtn'>new room</a></span>
                 </div>
-            </div>
-            <foter>
-                <h7>© 2025 Kódikos — Built for collaborative learning & building.</h7>
-            </foter>
+            </motion.div>
+            <footer>
+                <p>© 2025 Kódikos — Built for collaborative learning & building.</p>
+            </footer>
         </div>
     )
 }

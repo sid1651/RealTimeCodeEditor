@@ -1,10 +1,20 @@
 // src/pages/LandingPage.jsx
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
- // keep your styles
+import { motion } from "framer-motion";
+import { Terminal, Users, Shield, GitBranch, Link2, ArrowRight } from "lucide-react";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.2 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
 
   return (
     <div className="landing-page">
@@ -22,91 +32,69 @@ const LandingPage = () => {
 
         <div className="navbar-actions">
           {/* use Link to avoid full reload */}
-          <Link to="/sigin" className="btn-outline">Log In</Link>
+          <Link to="/signin" className="btn-outline">Log In</Link>
           <Link to="/signup" className="btn-primary">Sign Up</Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <header className="hero">
+      <motion.header 
+        className="hero"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+      >
         <div className="hero-content">
-          <h1>Kódikos</h1>
-          <img src="logo-dark.png" alt="Kódikos Logo" className="hero-logo" />
+          <h1>The Modern <span>Collaborative</span> Code Editor</h1>
           <p>
             The modern collaborative code editor where you can create, share, and
             build projects together in real-time.
           </p>
           <button
-            className="btn-secondary"
+            className="btn-primary"
             onClick={() => navigate("/home")}
           >
-            Create Room
+            Start Coding <ArrowRight size={20} />
           </button>
         </div>
-      </header>
+      </motion.header>
 
       {/* Features Section */}
-      <section className="features" id="features">
-        <h2>Why Kódikos?</h2>
+      <motion.section className="features" id="features" variants={containerVariants} initial="hidden" whileInView="show" viewport={{ once: true }}>
+        <h2 className="section-title">Why Kódikos?</h2>
         <div className="features-grid">
-          <div className="feature-card">
-            <img src="/download.png" alt="Real-time" />
+          <motion.div className="feature-card" variants={itemVariants}>
+            <div className="feature-icon"><Users size={32} /></div>
             <h3>Real-time Collaboration</h3>
             <p>
               Work with your team live — every keystroke is instantly visible to
               everyone in the room.
             </p>
-          </div>
-          <div className="feature-card">
-            <img src="https://img.icons8.com/color/344/code-file.png" alt="Languages" />
+          </motion.div>
+          <motion.div className="feature-card" variants={itemVariants}>
+            <div className="feature-icon"><Terminal size={32} /></div>
             <h3>Multi-Language Support</h3>
             <p>
               From HTML, CSS, and JS to modern frameworks — code in your favorite stack.
             </p>
-          </div>
-          <div className="feature-card">
-            <img src="https://img.icons8.com/fluency/344/shield.png" alt="Secure" />
+          </motion.div>
+          <motion.div className="feature-card" variants={itemVariants}>
+            <div className="feature-icon"><Shield size={32} /></div>
             <h3>Secure & Private</h3>
             <p>
               Rooms are protected and temporary. Share the link only with people
               you trust.
             </p>
-          </div>
+          </motion.div>
         </div>
-      </section>
-
-      {/* About Section */}
-      <section className="about" id="about">
-        <h2>About Kódikos</h2>
-        <p>
-          Kódikos was built with developers in mind. Inspired by platforms like
-          CodePen and VSCode, it aims to bring the best real-time editing
-          experience for students, teams, and professionals.
-        </p>
-        <p>
-          With simplicity at its core, it helps you create rooms instantly and
-          focus on what matters: <strong>writing great code</strong>.
-        </p>
-      </section>
-
-      {/* Call To Action */}
-      <section className="cta" id="create-room">
-        <h2>Ready to Start?</h2>
-        <p>Create your coding room and invite your team today.</p>
-        <button
-          className="btn-secondary"
-          onClick={() => navigate("/home")}
-        >
-          Create Room
-        </button>
-      </section>
+      </motion.section>
 
       {/* Footer */}
       <footer className="footer">
         <p>© 2025 Kódikos. Built with ❤️ for developers.</p>
         <p>
-          <a href="https://github.com/">GitHub</a> |{" "}
-          <a href="https://linkedin.com/">LinkedIn</a>
+          <a href="https://github.com/"><GitBranch size={18} style={{marginRight: '8px'}} />GitHub</a> |{" "}
+          <a href="https://linkedin.com/"><Link2 size={18} style={{marginRight: '8px'}} />LinkedIn</a>
         </p>
       </footer>
     </div>

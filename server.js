@@ -73,8 +73,7 @@ function setupNamespace(namespace) {
 setupNamespace('/js');
 setupNamespace('/html');
 setupNamespace('/css');
-const backend = process.env.REACT_APP_BACKEND;
-const PORT = process.env.PORT ||5000;
-server.listen(PORT,backend, () => {
+const PORT = process.env.SERVER_PORT || process.env.PORT || 5000;
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

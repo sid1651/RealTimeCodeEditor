@@ -88,7 +88,9 @@ const EditorCSS = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false,
         }
 
         return () => {
-            socketRef.current.off(ACTIONS.CODE_CHANGE);
+            if(socketRef.current) {
+                socketRef.current.off(ACTIONS.CODE_CHANGE);
+            }
         };
     }, [socketRef.current]);
 

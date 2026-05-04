@@ -1,5 +1,5 @@
 
-import { Navigate, useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 export default function Signlog() {
 const navigate=useNavigate();
@@ -77,7 +77,7 @@ const navigate=useNavigate();
 
             <div className="switch-row">
               <span>New here?</span>
-              <button type="button" onClick={()=>navigate('signup')} className="link-btn">Create an account</button>
+              <button type="button" onClick={() => navigate('/signup')} className="link-btn">Create an account</button>
             </div>
           </form>
         </div>
@@ -95,4 +95,3 @@ const navigate=useNavigate();
 
   );
 }
-
