@@ -3,12 +3,14 @@ import Client from '../components/Client';
 import Editor from '../components/Editor';
 import EditorHTML from '../components/Editorhtml';
 import EditorCSS from '../components/Editorcss';
+import Chat from '../components/Chat';
 import { initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
 import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy, LogOut, Code2, LayoutTemplate } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy, LogOut, Code2, LayoutTemplate, MessageSquare, Play, TerminalSquare } from 'lucide-react';
+import axios from 'axios';
 
 
 // 
@@ -39,6 +41,12 @@ const EditorPage = () => {
     html: false,
     css: false,
   });
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // ✅ Terminal & Code Execution State
+  const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'terminal'
+  const [output, setOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
 
   const iframeRef = useRef(null);
 
@@ -131,6 +139,12 @@ const EditorPage = () => {
           if (typeof payload?.code === 'string') setCssCode(payload.code);
         });
 
+        // --- LIVE TERMINAL OUTPUT (From other users) ---
+        socketJSRef.current.on('code-output', ({ output: remoteOutput, username }) => {
+          setOutput(`--- Executed by ${username} ---\n\n${remoteOutput}`);
+          setActiveTab('terminal'); // Auto-switch to show what they executed
+        });
+
       } catch (err) {
         console.error('Failed to init sockets', err);
         toast.error('Failed to connect to collaboration servers.');
@@ -170,6 +184,34 @@ const EditorPage = () => {
       doc.close();
     }
   }, [htmlCode, cssCode, jsCode]);
+
+  // --- RUN CODE (PISTON API) ---
+  const runCode = async () => {
+    setIsRunning(true);
+    setActiveTab('terminal');
+    setOutput('Executing code...');
+    try {
+      const res = await axios.post('https://emacs.piston.rs/api/v2/execute', {
+        language: 'javascript',
+        version: '18.15.0',
+        files: [{ content: jsCode }],
+      });
+      
+      let finalOutput = res.data.run?.output || res.data.message || 'Execution finished with no output.';
+      setOutput(finalOutput);
+
+      // Broadcast output to everyone in the room
+      if (socketJSRef.current) {
+        socketJSRef.current.emit('code-output', { roomId, output: finalOutput, username: location.state?.username });
+      }
+
+    } catch (error) {
+      const errMsg = 'Error executing code: ' + (error.response?.data?.message || error.message);
+      setOutput(errMsg);
+    } finally {
+      setIsRunning(false);
+    }
+  };
 
   // --- COPY ROOM ID ---
   const copyRoomId = async () => {
@@ -215,6 +257,11 @@ const EditorPage = () => {
             </div>
           )}
           <div className="actionButtons">
+            {!isCollapsed && (
+              <button className="btn-primary" style={{ marginBottom: '10px' }} onClick={() => setIsChatOpen(true)}>
+                <MessageSquare size={16} /> Chat
+              </button>
+            )}
             {!isCollapsed && <button className="btn-primary copyBtn" onClick={copyRoomId}><Copy size={16} /> Copy ID</button>}
             <button className={`btn-primary LeaveBtn ${isCollapsed ? 'collapsed-btn' : ''}`} onClick={leaveRoom}><LogOut size={16} /> {!isCollapsed && 'Leave'}</button>
           </div>
@@ -235,6 +282,7 @@ const EditorPage = () => {
                 <Editor
                   socketRef={socketJSRef}
                   roomId={roomId}
+                  username={location.state?.username || 'Anonymous'}
                   value={jsCode}
                   isClientCollapsed={isCollapsed}
                   isPreviewCollapsed={Colaps}
@@ -258,6 +306,7 @@ const EditorPage = () => {
                 <EditorHTML
                   socketRef={socketHTMLRef}
                   roomId={roomId}
+                  username={location.state?.username || 'Anonymous'}
                   value={htmlCode}
                   isClientCollapsed={isCollapsed}
                   isPreviewCollapsed={Colaps}
@@ -281,6 +330,7 @@ const EditorPage = () => {
                 <EditorCSS
                   socketRef={socketCSSRef}
                   roomId={roomId}
+                  username={location.state?.username || 'Anonymous'}
                   value={cssCode}
                   isClientCollapsed={isCollapsed}
                   isPreviewCollapsed={Colaps}
@@ -297,13 +347,50 @@ const EditorPage = () => {
 
           {/* Live Preview */}
           <div className={`previwcolapsstyle ${Colaps ? 'collapsed' : ''}`}>
-            <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px' }}>
-              <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><LayoutTemplate size={18}/> Live Preview</span>
+            <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <button
+                  onClick={() => setActiveTab('preview')}
+                  style={{ background: 'none', border: 'none', color: activeTab === 'preview' ? '#fff' : '#6272a4', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
+                >
+                  <LayoutTemplate size={18} /> Live Preview
+                </button>
+                <button
+                  onClick={() => setActiveTab('terminal')}
+                  style={{ background: 'none', border: 'none', color: activeTab === 'terminal' ? '#fff' : '#6272a4', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}
+                >
+                  <TerminalSquare size={18} /> Terminal
+                </button>
+              </div>
+              <button
+                className="btn-primary"
+                onClick={runCode}
+                disabled={isRunning}
+                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', opacity: isRunning ? 0.7 : 1, width: 'auto' }}
+              >
+                <Play size={14} /> {isRunning ? 'Running...' : 'Run JS'}
+              </button>
             </h3>
-            {!Colaps && <iframe ref={iframeRef} title="Live Preview" />}
+            {!Colaps && activeTab === 'preview' && (
+              <iframe ref={iframeRef} title="Live Preview" style={{ width: '100%', height: 'calc(100% - 50px)', border: 'none', backgroundColor: '#fff' }} />
+            )}
+            {!Colaps && activeTab === 'terminal' && (
+              <div style={{ padding: '16px', backgroundColor: '#1e1e2e', color: '#f8f8f2', fontFamily: 'monospace', height: 'calc(100% - 50px)', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                {output || 'Click "Run JS" to see the output here...'}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Chat Drawer */}
+      <Chat
+        socketRef={socketJSRef}
+        roomId={roomId}
+        username={location.state?.username || 'Anonymous'}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   );
 };

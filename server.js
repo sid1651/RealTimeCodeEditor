@@ -48,12 +48,29 @@ function setupNamespace(namespace) {
       });
     });
 
-    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code }) => {
-      socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code });
+    socket.on(ACTIONS.CODE_CHANGE, ({ roomId, code, editorType }) => {
+      socket.in(roomId).emit(ACTIONS.CODE_CHANGE, { code, editorType });
     });
 
-    socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
-      io.of(namespace).to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
+    socket.on(ACTIONS.SYNC_CODE, ({ socketId, code, editorType }) => {
+      io.of(namespace).to(socketId).emit(ACTIONS.CODE_CHANGE, { code, editorType });
+    });
+
+    socket.on('cursor-change', ({ roomId, username, color, cursor }) => {
+      socket.in(roomId).emit('cursor-change', {
+        socketId: socket.id,
+        username,
+        color,
+        cursor,
+      });
+    });
+
+    socket.on('send-message', ({ roomId, message, username, time }) => {
+      socket.in(roomId).emit('receive-message', { message, username, time });
+    });
+
+    socket.on('code-output', ({ roomId, output, username }) => {
+      socket.in(roomId).emit('code-output', { output, username });
     });
 
     socket.on('disconnecting', () => {
@@ -70,6 +87,7 @@ function setupNamespace(namespace) {
 }
 
 // Setup namespaces
+setupNamespace('/');
 setupNamespace('/js');
 setupNamespace('/html');
 setupNamespace('/css');
