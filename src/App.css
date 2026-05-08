@@ -332,6 +332,98 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0.85rem;
 }
 
+.roleSelector {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.roleOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.roleOption:hover {
+  border-color: rgba(139, 92, 246, 0.45);
+  color: var(--text-main);
+}
+
+.roleOption.active {
+  border-color: rgba(6, 182, 212, 0.55);
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--text-main);
+  box-shadow: inset 0 0 0 1px rgba(6, 182, 212, 0.15);
+}
+
+.roleHint {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.invitePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inviteTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.inviteCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.inviteBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(6, 182, 212, 0.18);
+  color: #67e8f9;
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.inviteBadge.spectator {
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+}
+
+.inviteText {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.inviteCopyBtn {
+  min-width: 132px;
+  justify-content: center;
+}
+
 .createInfo {
   font-size: 0.9rem;
   text-align: center;
@@ -362,6 +454,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .mainWrape.collapsed {
   grid-template-columns: 70px 1fr;
+}
+
+.workspacePane {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .aside {
@@ -426,6 +524,53 @@ h1, h2, h3, h4, h5, h6 {
   width: auto;
 }
 
+.roomMeta {
+  margin-top: 1.2rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.roomIdLabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.roomIdValue {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.rolePill {
+  margin-top: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(6, 182, 212, 0.16);
+  color: #67e8f9;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.rolePill.spectator {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+
+.leaderHint {
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .clientList {
   display: flex;
   flex-direction: column;
@@ -438,22 +583,109 @@ h1, h2, h3, h4, h5, h6 {
 
 .client {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.9rem;
   background: rgba(255, 255, 255, 0.03);
-  padding: 10px 14px;
-  border-radius: 12px;
-  transition: background 0.2s, transform 0.2s;
+  padding: 14px;
+  border-radius: 16px;
+  transition: background 0.2s, transform 0.2s, border-color 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .client:hover {
   background: rgba(255, 255, 255, 0.06);
   transform: translateX(4px);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.clientMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.clientMeta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .client .username {
   font-size: 1rem;
   font-weight: 600;
+}
+
+.clientBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.clientRole {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(6, 182, 212, 0.14);
+  color: #67e8f9;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.clientRole.spectator {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+
+.clientRole.leader {
+  background: rgba(139, 92, 246, 0.18);
+  color: #d8b4fe;
+}
+
+.promoteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 1px solid rgba(6, 182, 212, 0.32);
+  background: rgba(6, 182, 212, 0.12);
+  color: #67e8f9;
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.promoteBtn:hover {
+  background: rgba(6, 182, 212, 0.2);
+  transform: translateY(-1px);
+}
+
+.promoteBtn.promote {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.promoteBtn.promote:hover {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.promoteBtn.demote {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(250, 204, 21, 0.1);
+  color: #fde68a;
+}
+
+.promoteBtn.demote:hover {
+  background: rgba(250, 204, 21, 0.16);
 }
 
 .actionButtons {
@@ -478,22 +710,44 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--danger-hover);
 }
 
+.btn-primary:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ===== EDITOR AREA ===== */
 .editorWrap {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 12px;
   padding: 12px;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   box-sizing: border-box;
 }
 
+.editorholder {
+  flex: 1 1 62%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
 .editorContainer {
-  min-width: 320px;
+  min-width: 0;
+  min-height: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
+  flex: 0 0 auto;
   border-radius: 16px;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -512,6 +766,14 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.CodeMirror.cm-s-dracula.CodeMirror-readonly {
+  background: #17171f;
+}
+
+.CodeMirror-readonly .CodeMirror-cursor {
+  display: none;
 }
 
 .collapse-editor-btn {
@@ -549,16 +811,41 @@ h1, h2, h3, h4, h5, h6 {
 /* CodeMirror styling */
 .CodeMirror {
   height: 100% !important;
+  min-height: 0 !important;
   font-family: 'JetBrains Mono', monospace !important;
   font-size: 0.95rem;
   background: transparent !important;
 }
 
+.codeEditorShell {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.codeEditorShell .CodeMirror {
+  height: 100% !important;
+}
+
+.CodeMirror-scroll {
+  max-height: 100% !important;
+  overflow: auto !important;
+}
+
+.CodeMirror-sizer,
+.CodeMirror-lines {
+  min-height: 100% !important;
+}
+
 .previwcolapsstyle {
   display: flex;
   flex-direction: column;
-  width: 40%;
-  min-width: 280px;
+  flex: 0 0 38%;
+  width: 38%;
+  min-width: 320px;
+  height: 100%;
+  min-height: 0;
   position: relative;
   transition: all 0.3s ease;
   background: white;
@@ -584,9 +871,27 @@ h1, h2, h3, h4, h5, h6 {
 
 .previwcolapsstyle.collapsed {
   width: 0%;
+  flex-basis: 0;
   min-width: 0;
   opacity: 0;
   border: none;
+}
+
+@media (max-width: 1100px) {
+  .editorWrap {
+    flex-direction: column;
+  }
+
+  .editorholder,
+  .previwcolapsstyle {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .previwcolapsstyle {
+    min-width: 0;
+    min-height: 320px;
+  }
 }
 
 /* ===== SCROLLBAR ===== */

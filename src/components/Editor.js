@@ -9,10 +9,11 @@ import 'codemirror/addon/scroll/simplescrollbars';
 import 'codemirror/addon/scroll/simplescrollbars.css';
 import ACTIONS from '../Actions';
 
-const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, isPreviewCollapsed = false, value = '', username = 'Anonymous' }) => {
+const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, isPreviewCollapsed = false, value = '', username = 'Anonymous', readOnly = false }) => {
   const editorRef = useRef(null);
   const wrapperRef = useRef(null);
   const remoteCursors = useRef({});
+  const readOnlyRef = useRef(readOnly);
   const [myColor] = useState(() => {
     const colors = ['#FF5733', '#33FF57', '#3357FF', '#F033FF', '#FF33A8', '#FFC733', '#00BCD4', '#8BC34A', '#9C27B0', '#E91E63'];
     return colors[Math.floor(Math.random() * colors.length)];
@@ -53,7 +54,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
         autoCloseTags: true,
         autoCloseBrackets: true,
         lineNumbers: true,
-        viewportMargin: Infinity,
+        readOnly,
         scrollbarStyle: 'simple',
       });
 
@@ -64,7 +65,7 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
         const code = instance.getValue();
         onCodeChange(code);
 
-        if (origin !== 'setValue' && socketRef?.current) {
+        if (!readOnlyRef.current && origin !== 'setValue' && socketRef?.current) {
           socketRef.current.emit(ACTIONS.CODE_CHANGE, {
             roomId,
             code, // ✅ correct key
@@ -99,13 +100,14 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
   }, []); // run once
 
   useEffect(() => {
-    if (!socketRef.current) return;
+    const socket = socketRef.current;
+    if (!socket || !editorRef.current) return;
 
-    socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code, editorType }) => {
+    const handleCodeChange = ({ code, editorType }) => {
       if ((!editorType || editorType === 'js') && typeof code === "string") {
         editorRef.current.setValue(code);
       }
-    });
+    };
 
     const handleCursorChange = ({ socketId, username: remoteUser, color, cursor }) => {
       const cm = editorRef.current;
@@ -182,27 +184,32 @@ const Editor = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false, is
       }
     };
 
-    socketRef.current.on('cursor-change', handleCursorChange);
-    socketRef.current.on(ACTIONS.DISCONNECTED, handleUserDisconnected);
+    socket.on(ACTIONS.CODE_CHANGE, handleCodeChange);
+    socket.on('cursor-change', handleCursorChange);
+    socket.on(ACTIONS.DISCONNECTED, handleUserDisconnected);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.off(ACTIONS.CODE_CHANGE);
-        socketRef.current.off('cursor-change', handleCursorChange);
-        socketRef.current.off(ACTIONS.DISCONNECTED, handleUserDisconnected);
-      }
+      socket.off(ACTIONS.CODE_CHANGE, handleCodeChange);
+      socket.off('cursor-change', handleCursorChange);
+      socket.off(ACTIONS.DISCONNECTED, handleUserDisconnected);
     };
-  }, [socketRef.current]);
+  }, [socketRef]);
+
+  useEffect(() => {
+    readOnlyRef.current = readOnly;
+    if (editorRef.current) {
+      editorRef.current.setOption('readOnly', readOnly);
+    }
+  }, [readOnly]);
 
   return (
     <div
       ref={wrapperRef}
+      className="codeEditorShell"
       style={{
         height: '100%',
-        // width,
-        overflow: 'auto',
+        minHeight: 0,
         borderRadius: '6px',
-        border: '1px solid rgba(255,255,255,0.1)',
         transition: 'width 200ms ease',
       }}
     >

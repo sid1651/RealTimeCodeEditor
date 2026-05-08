@@ -9,7 +9,7 @@ import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom'
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy, LogOut, Code2, LayoutTemplate, MessageSquare, Play, TerminalSquare } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, Play, TerminalSquare, UserPlus, Copy } from 'lucide-react';
 import axios from 'axios';
 
 
@@ -25,6 +25,11 @@ const EditorPage = () => {
   const { roomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const username = location.state?.username || 'Anonymous';
+  const initialRoleRef = useRef(location.state?.role === 'spectator' ? 'spectator' : 'editor');
+  const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
+  const [userRole, setUserRole] = useState(initialRoleRef.current);
+  const isSpectator = userRole === 'spectator';
 
   // ROOM-SPECIFIC LOCAL STORAGE STATE
   const [jsCode, setJsCode] = useState(localStorage.getItem(`jsCode_${roomId}`) || '');
@@ -32,8 +37,11 @@ const EditorPage = () => {
   const [cssCode, setCssCode] = useState(localStorage.getItem(`cssCode_${roomId}`) || '');
 
   const [clients, setClients] = useState([]);
+  const [pendingClients, setPendingClients] = useState([]);
+  const [socketsReady, setSocketsReady] = useState(false);
+  const [joinStatus, setJoinStatus] = useState('connecting');
   const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar collapsed
-  const [Colaps, setColaps] = useState(false); // Preview collapsed
+  const [Colaps] = useState(false); // Preview collapsed
 
   // ✅ New state for individual editor collapse
   const [collapseEditor, setCollapseEditor] = useState({
@@ -68,11 +76,61 @@ const EditorPage = () => {
 
   // --- INIT SOCKETS AND JOIN ROOM ---
   useEffect(() => {
+    let cancelled = false;
+
+    const initSecondarySockets = async () => {
+      if (socketHTMLRef.current && socketCSSRef.current) {
+        setSocketsReady(true);
+        return;
+      }
+
+      socketHTMLRef.current = await initSocketHTML();
+      socketCSSRef.current = await initSocketCSS();
+
+      if (cancelled) {
+        return;
+      }
+
+      const handleErrors = (err) => {
+        console.error('Socket connection error:', err);
+        toast.error('Socket connection failed. Please try again.');
+        navigate('/');
+      };
+
+      socketHTMLRef.current.on('connect_error', handleErrors);
+      socketCSSRef.current.on('connect_error', handleErrors);
+
+      // --- SYNC CODE FROM SERVER (HTML/CSS) ---
+      socketHTMLRef.current.on(ACTIONS.SYNC_CODE, payload => {
+        if (typeof payload?.code === 'string') {
+          codeRef.current.htmlmixed = payload.code;
+          setHtmlCode(payload.code);
+        }
+      });
+      socketCSSRef.current.on(ACTIONS.SYNC_CODE, payload => {
+        if (typeof payload?.code === 'string') {
+          codeRef.current.css = payload.code;
+          setCssCode(payload.code);
+        }
+      });
+
+      // --- LIVE CODE CHANGES (HTML/CSS) ---
+      socketHTMLRef.current.on(ACTIONS.CODE_CHANGE, payload => {
+        if (typeof payload?.code === 'string') setHtmlCode(payload.code);
+      });
+      socketCSSRef.current.on(ACTIONS.CODE_CHANGE, payload => {
+        if (typeof payload?.code === 'string') setCssCode(payload.code);
+      });
+
+      const joinPayload = { roomId, username, role: userRole, participantId: participantIdRef.current };
+      socketHTMLRef.current.emit(ACTIONS.JOIN, joinPayload);
+      socketCSSRef.current.emit(ACTIONS.JOIN, joinPayload);
+      setSocketsReady(true);
+    };
+
     const initAll = async () => {
       try {
         socketJSRef.current = await initSocketJS();
-        socketHTMLRef.current = await initSocketHTML();
-        socketCSSRef.current = await initSocketCSS();
 
         const handleErrors = (err) => {
           console.error('Socket connection error:', err);
@@ -81,31 +139,67 @@ const EditorPage = () => {
         };
 
         socketJSRef.current.on('connect_error', handleErrors);
-        socketHTMLRef.current.on('connect_error', handleErrors);
-        socketCSSRef.current.on('connect_error', handleErrors);
+        socketJSRef.current.on(ACTIONS.JOIN_ERROR, ({ message }) => {
+          toast.error(message || 'Unable to join this room.');
+          navigate('/home');
+        });
+        socketJSRef.current.on(ACTIONS.JOIN_PENDING, () => {
+          setJoinStatus('pending');
+        });
+        socketJSRef.current.on(ACTIONS.JOIN_REQUEST, ({ pendingClients: incomingPendingClients }) => {
+          setPendingClients(incomingPendingClients || []);
+        });
+        socketJSRef.current.on(ACTIONS.JOIN_APPROVED, async () => {
+          setJoinStatus('approved');
+          await initSecondarySockets();
+        });
 
-        const joinPayload = { roomId, username: location.state?.username };
+        const joinPayload = { roomId, username, role: initialRoleRef.current, participantId: participantIdRef.current };
         socketJSRef.current.emit(ACTIONS.JOIN, joinPayload);
-        socketHTMLRef.current.emit(ACTIONS.JOIN, joinPayload);
-        socketCSSRef.current.emit(ACTIONS.JOIN, joinPayload);
 
         // --- JOINED EVENT ---
-        socketJSRef.current.on(ACTIONS.JOINED, ({ clients: joinedClients, username, socketId }) => {
-          if (username !== location.state?.username) {
-            toast.success(`${username} has joined the room!`);
+        socketJSRef.current.on(ACTIONS.JOINED, async ({ clients: joinedClients, pendingClients: incomingPendingClients, username: joinedUsername, socketId, participantId }) => {
+          if (joinedUsername !== username) {
+            toast.success(`${joinedUsername} has joined the room!`);
           }
           setClients(joinedClients);
+          setPendingClients(incomingPendingClients || []);
+
+          if (joinedClients.some(client => client.participantId === participantIdRef.current)) {
+            setJoinStatus('approved');
+            await initSecondarySockets();
+          }
 
           // Sync existing code
-          socketJSRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.javascript, socketId });
-          socketHTMLRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.htmlmixed, socketId });
-          socketCSSRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.css, socketId });
+          socketJSRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.javascript, socketId, participantId, editorType: 'js' });
+          if (socketHTMLRef.current && socketCSSRef.current) {
+            socketHTMLRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.htmlmixed, socketId, participantId, editorType: 'html' });
+            socketCSSRef.current.emit(ACTIONS.SYNC_CODE, { code: codeRef.current.css, socketId, participantId, editorType: 'css' });
+          }
         });
 
         // --- DISCONNECTED EVENT ---
-        socketJSRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username }) => {
+        socketJSRef.current.on(ACTIONS.DISCONNECTED, ({ socketId, username, clients: updatedClients, pendingClients: incomingPendingClients }) => {
           toast.success(`${username} has left the room`);
-          setClients(prev => prev.filter(client => client.socketId !== socketId));
+          setPendingClients(incomingPendingClients || []);
+          if (updatedClients) {
+            setClients(updatedClients);
+          } else {
+            setClients(prev => prev.filter(client => client.socketId !== socketId));
+          }
+        });
+
+        socketJSRef.current.on(ACTIONS.ROLE_CHANGED, ({ clients: updatedClients, pendingClients: incomingPendingClients, participantId, role, username: changedUsername }) => {
+          setClients(updatedClients);
+          setPendingClients(incomingPendingClients || []);
+
+          if (participantId === participantIdRef.current) {
+            setUserRole(role);
+            toast.success(`You are now an ${role}.`);
+            return;
+          }
+
+          toast.success(`${changedUsername} is now an ${role}.`);
         });
 
         // --- SYNC CODE FROM SERVER ---
@@ -115,33 +209,15 @@ const EditorPage = () => {
             setJsCode(payload.code);
           }
         });
-        socketHTMLRef.current.on(ACTIONS.SYNC_CODE, payload => {
-          if (typeof payload?.code === 'string') {
-            codeRef.current.htmlmixed = payload.code;
-            setHtmlCode(payload.code);
-          }
-        });
-        socketCSSRef.current.on(ACTIONS.SYNC_CODE, payload => {
-          if (typeof payload?.code === 'string') {
-            codeRef.current.css = payload.code;
-            setCssCode(payload.code);
-          }
-        });
 
         // --- LIVE CODE CHANGES ---
         socketJSRef.current.on(ACTIONS.CODE_CHANGE, payload => {
           if (typeof payload?.code === 'string') setJsCode(payload.code);
         });
-        socketHTMLRef.current.on(ACTIONS.CODE_CHANGE, payload => {
-          if (typeof payload?.code === 'string') setHtmlCode(payload.code);
-        });
-        socketCSSRef.current.on(ACTIONS.CODE_CHANGE, payload => {
-          if (typeof payload?.code === 'string') setCssCode(payload.code);
-        });
 
         // --- LIVE TERMINAL OUTPUT (From other users) ---
-        socketJSRef.current.on('code-output', ({ output: remoteOutput, username }) => {
-          setOutput(`--- Executed by ${username} ---\n\n${remoteOutput}`);
+        socketJSRef.current.on('code-output', ({ output: remoteOutput, username: remoteUsername }) => {
+          setOutput(`--- Executed by ${remoteUsername} ---\n\n${remoteOutput}`);
           setActiveTab('terminal'); // Auto-switch to show what they executed
         });
 
@@ -155,11 +231,42 @@ const EditorPage = () => {
     initAll();
 
     return () => {
+      cancelled = true;
+      setSocketsReady(false);
+      setJoinStatus('connecting');
       socketJSRef.current?.disconnect();
       socketHTMLRef.current?.disconnect();
       socketCSSRef.current?.disconnect();
+      socketJSRef.current = null;
+      socketHTMLRef.current = null;
+      socketCSSRef.current = null;
     };
-  }, [roomId, location.state, navigate]);
+  }, [navigate, roomId, userRole, username]);
+
+  const isLeader = clients.some(client => client.participantId === participantIdRef.current && client.isLeader);
+
+  const handleRoleChange = (targetParticipantId, nextRole) => {
+    if (!socketJSRef.current || !isLeader) {
+      return;
+    }
+
+    socketJSRef.current.emit(ACTIONS.UPDATE_ROLE, {
+      roomId,
+      participantId: targetParticipantId,
+      role: nextRole,
+    });
+  };
+
+  const admitParticipant = (targetParticipantId) => {
+    if (!socketJSRef.current || !isLeader) {
+      return;
+    }
+
+    socketJSRef.current.emit(ACTIONS.ADMIT_PARTICIPANT, {
+      roomId,
+      participantId: targetParticipantId,
+    });
+  };
 
   // --- LIVE PREVIEW UPDATE ---
   useEffect(() => {
@@ -187,6 +294,11 @@ const EditorPage = () => {
 
   // --- RUN CODE (PISTON API) ---
   const runCode = async () => {
+    if (isSpectator) {
+      toast.error('Spectators can watch live, but cannot run code.');
+      return;
+    }
+
     setIsRunning(true);
     setActiveTab('terminal');
     setOutput('Executing code...');
@@ -202,7 +314,7 @@ const EditorPage = () => {
 
       // Broadcast output to everyone in the room
       if (socketJSRef.current) {
-        socketJSRef.current.emit('code-output', { roomId, output: finalOutput, username: location.state?.username });
+        socketJSRef.current.emit('code-output', { roomId, output: finalOutput, username });
       }
 
     } catch (error) {
@@ -213,22 +325,23 @@ const EditorPage = () => {
     }
   };
 
-  // --- COPY ROOM ID ---
-  const copyRoomId = async () => {
-    try {
-      await navigator.clipboard.writeText(roomId);
-      toast.success('Room ID copied!');
-    } catch {
-      toast.error('Failed to copy Room ID');
-    }
-  };
-
   // --- LEAVE ROOM ---
   const leaveRoom = () => {
     localStorage.removeItem(`jsCode_${roomId}`);
     localStorage.removeItem(`htmlCode_${roomId}`);
     localStorage.removeItem(`cssCode_${roomId}`);
     navigate('/');
+  };
+
+  // --- COPY SPECTATOR INVITE ---
+  const copySpectatorInvite = async () => {
+    try {
+      const link = `${window.location.origin}/home?roomId=${roomId}&role=spectator`;
+      await navigator.clipboard.writeText(link);
+      toast.success('Spectator Invite copied!');
+    } catch {
+      toast.error('Failed to copy invite');
+    }
   };
 
   if (!location.state) return <Navigate to="/" />;
@@ -250,9 +363,29 @@ const EditorPage = () => {
             {!isCollapsed && <h2>Kódikos</h2>}
           </div>
           {!isCollapsed && (
+            <div className="roomMeta">
+              <p className="roomIdLabel">Room ID</p>
+              <p className="roomIdValue">{roomId}</p>
+              <div className={`rolePill ${isSpectator ? 'spectator' : ''}`}>
+                {isSpectator ? <Eye size={14} /> : <PencilLine size={14} />}
+                <span>{isSpectator ? 'Spectator Mode' : 'Editor Mode'}</span>
+              </div>
+              {isLeader && <p className="leaderHint">You can switch members between spectator and editor at any time.</p>}
+            </div>
+          )}
+          {!isCollapsed && (
             <div className="clientList" style={{ padding: '20px 0' }}>
               <AnimatePresence>
-              {clients.map(client => <Client key={client.socketId} username={client.username} />)}
+              {clients.map(client => (
+                <Client
+                  key={client.socketId}
+                  username={client.username}
+                  role={client.role}
+                  isLeader={client.isLeader}
+                  canManageRole={isLeader && !client.isLeader}
+                  onToggleRole={() => handleRoleChange(client.participantId, client.role === 'spectator' ? 'editor' : 'spectator')}
+                />
+              ))}
               </AnimatePresence>
             </div>
           )}
@@ -262,16 +395,16 @@ const EditorPage = () => {
                 <MessageSquare size={16} /> Chat
               </button>
             )}
-            {!isCollapsed && <button className="btn-primary copyBtn" onClick={copyRoomId}><Copy size={16} /> Copy ID</button>}
+            {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Spectator Invite</button>}
             <button className={`btn-primary LeaveBtn ${isCollapsed ? 'collapsed-btn' : ''}`} onClick={leaveRoom}><LogOut size={16} /> {!isCollapsed && 'Leave'}</button>
           </div>
         </div>
       </aside>
 
       {/* Editors + Preview */}
-      <div>
+      <div className="workspacePane">
         <div className="editorWrap">
-          <div className='editorholder' style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className='editorholder'>
             {/* JavaScript Editor */}
             {!collapseEditor.js && (
               <div style={{ height: editorHeight }} className="editorContainer">
@@ -279,15 +412,18 @@ const EditorPage = () => {
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#facc15" /> JavaScript</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, js: true }))}><ChevronUp size={18} /></button>
                 </div>
-                <Editor
-                  socketRef={socketJSRef}
-                  roomId={roomId}
-                  username={location.state?.username || 'Anonymous'}
-                  value={jsCode}
-                  isClientCollapsed={isCollapsed}
-                  isPreviewCollapsed={Colaps}
-                  onCodeChange={code => setJsCode(code)}
-                />
+                {socketsReady && (
+                  <Editor
+                    socketRef={socketJSRef}
+                    roomId={roomId}
+                    username={username}
+                    value={jsCode}
+                    readOnly={isSpectator}
+                    isClientCollapsed={isCollapsed}
+                    isPreviewCollapsed={Colaps}
+                    onCodeChange={code => setJsCode(code)}
+                  />
+                )}
               </div>
             )}
             {collapseEditor.js && (
@@ -303,15 +439,18 @@ const EditorPage = () => {
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#ef4444" /> HTML</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, html: true }))}><ChevronUp size={18} /></button>
                 </div>
-                <EditorHTML
-                  socketRef={socketHTMLRef}
-                  roomId={roomId}
-                  username={location.state?.username || 'Anonymous'}
-                  value={htmlCode}
-                  isClientCollapsed={isCollapsed}
-                  isPreviewCollapsed={Colaps}
-                  onCodeChange={code => setHtmlCode(code)}
-                />
+                {socketsReady && (
+                  <EditorHTML
+                    socketRef={socketHTMLRef}
+                    roomId={roomId}
+                    username={username}
+                    value={htmlCode}
+                    readOnly={isSpectator}
+                    isClientCollapsed={isCollapsed}
+                    isPreviewCollapsed={Colaps}
+                    onCodeChange={code => setHtmlCode(code)}
+                  />
+                )}
               </div>
             )}
             {collapseEditor.html && (
@@ -327,15 +466,18 @@ const EditorPage = () => {
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#3b82f6" /> CSS</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, css: true }))}><ChevronUp size={18} /></button>
                 </div>
-                <EditorCSS
-                  socketRef={socketCSSRef}
-                  roomId={roomId}
-                  username={location.state?.username || 'Anonymous'}
-                  value={cssCode}
-                  isClientCollapsed={isCollapsed}
-                  isPreviewCollapsed={Colaps}
-                  onCodeChange={code => setCssCode(code)}
-                />
+                {socketsReady && (
+                  <EditorCSS
+                    socketRef={socketCSSRef}
+                    roomId={roomId}
+                    username={username}
+                    value={cssCode}
+                    readOnly={isSpectator}
+                    isClientCollapsed={isCollapsed}
+                    isPreviewCollapsed={Colaps}
+                    onCodeChange={code => setCssCode(code)}
+                  />
+                )}
               </div>
             )}
             {collapseEditor.css && (
@@ -365,10 +507,10 @@ const EditorPage = () => {
               <button
                 className="btn-primary"
                 onClick={runCode}
-                disabled={isRunning}
-                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', opacity: isRunning ? 0.7 : 1, width: 'auto' }}
+                disabled={isRunning || isSpectator}
+                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', opacity: (isRunning || isSpectator) ? 0.7 : 1, width: 'auto' }}
               >
-                <Play size={14} /> {isRunning ? 'Running...' : 'Run JS'}
+                <Play size={14} /> {isSpectator ? 'Read Only' : isRunning ? 'Running...' : 'Run JS'}
               </button>
             </h3>
             {!Colaps && activeTab === 'preview' && (
@@ -384,13 +526,15 @@ const EditorPage = () => {
       </div>
 
       {/* Chat Drawer */}
-      <Chat
-        socketRef={socketJSRef}
-        roomId={roomId}
-        username={location.state?.username || 'Anonymous'}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />
+      {socketsReady && (
+        <Chat
+          socketRef={socketJSRef}
+          roomId={roomId}
+          username={username}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   );
 };
