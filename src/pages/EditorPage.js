@@ -29,6 +29,7 @@ const EditorPage = () => {
   const initialRoleRef = useRef(location.state?.role === 'spectator' ? 'spectator' : 'editor');
   const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
   const [userRole, setUserRole] = useState(initialRoleRef.current);
+  const userRoleRef = useRef(initialRoleRef.current);
   const isSpectator = userRole === 'spectator';
 
   // ROOM-SPECIFIC LOCAL STORAGE STATE
@@ -73,6 +74,10 @@ const EditorPage = () => {
     localStorage.setItem(`cssCode_${roomId}`, cssCode);
     codeRef.current.css = cssCode;
   }, [cssCode, roomId]);
+
+  useEffect(() => {
+    userRoleRef.current = userRole;
+  }, [userRole]);
 
   // --- INIT SOCKETS AND JOIN ROOM ---
   useEffect(() => {
@@ -122,7 +127,7 @@ const EditorPage = () => {
         if (typeof payload?.code === 'string') setCssCode(payload.code);
       });
 
-      const joinPayload = { roomId, username, role: userRole, participantId: participantIdRef.current };
+      const joinPayload = { roomId, username, role: userRoleRef.current, participantId: participantIdRef.current };
       socketHTMLRef.current.emit(ACTIONS.JOIN, joinPayload);
       socketCSSRef.current.emit(ACTIONS.JOIN, joinPayload);
       setSocketsReady(true);
@@ -143,8 +148,9 @@ const EditorPage = () => {
           toast.error(message || 'Unable to join this room.');
           navigate('/home');
         });
-        socketJSRef.current.on(ACTIONS.JOIN_PENDING, () => {
+        socketJSRef.current.on(ACTIONS.JOIN_PENDING, ({ pendingClients: incomingPendingClients }) => {
           setJoinStatus('pending');
+          setPendingClients(incomingPendingClients || []);
         });
         socketJSRef.current.on(ACTIONS.JOIN_REQUEST, ({ pendingClients: incomingPendingClients }) => {
           setPendingClients(incomingPendingClients || []);
@@ -159,7 +165,7 @@ const EditorPage = () => {
 
         // --- JOINED EVENT ---
         socketJSRef.current.on(ACTIONS.JOINED, async ({ clients: joinedClients, pendingClients: incomingPendingClients, username: joinedUsername, socketId, participantId }) => {
-          if (joinedUsername !== username) {
+          if (joinedUsername && joinedUsername !== username) {
             toast.success(`${joinedUsername} has joined the room!`);
           }
           setClients(joinedClients);
@@ -241,7 +247,7 @@ const EditorPage = () => {
       socketHTMLRef.current = null;
       socketCSSRef.current = null;
     };
-  }, [navigate, roomId, userRole, username]);
+  }, [navigate, roomId, username]);
 
   const isLeader = clients.some(client => client.participantId === participantIdRef.current && client.isLeader);
 
@@ -346,6 +352,61 @@ const EditorPage = () => {
 
   if (!location.state) return <Navigate to="/" />;
 
+  if (joinStatus !== 'approved') {
+    const isWaitingForHost = joinStatus === 'pending';
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0f172a 0%, #111827 55%, #1e293b 100%)',
+        padding: '24px',
+      }}>
+        <div style={{
+          width: '100%',
+          maxWidth: '520px',
+          background: 'rgba(15, 23, 42, 0.92)',
+          border: '1px solid rgba(148, 163, 184, 0.18)',
+          borderRadius: '24px',
+          padding: '32px',
+          color: '#e2e8f0',
+          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.45)',
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '18px',
+            background: isWaitingForHost ? 'rgba(59, 130, 246, 0.18)' : 'rgba(16, 185, 129, 0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '20px',
+          }}>
+            <UserPlus size={24} color={isWaitingForHost ? '#60a5fa' : '#34d399'} />
+          </div>
+          <h1 style={{ margin: 0, fontSize: '28px', lineHeight: 1.2 }}>
+            {isWaitingForHost ? 'Waiting for the room leader' : 'Joining room'}
+          </h1>
+          <p style={{ margin: '14px 0 0', color: '#94a3b8', lineHeight: 1.6 }}>
+            {isWaitingForHost
+              ? `${username}, your request to join room ${roomId} has been sent. The room leader needs to admit you before the editor opens.`
+              : `Connecting you to room ${roomId}. This should only take a moment.`}
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={leaveRoom}
+            style={{ marginTop: '24px', width: '100%' }}
+          >
+            Cancel And Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ✅ Calculate dynamic height based on collapse state
   const visibleEditors = Object.values(collapseEditor).filter(c => !c).length;
   const editorHeight = visibleEditors > 0 ? `${100 / visibleEditors}%` : '0';
@@ -373,6 +434,50 @@ const EditorPage = () => {
               {isLeader && <p className="leaderHint">You can switch members between spectator and editor at any time.</p>}
             </div>
           )}
+          {!isCollapsed && isLeader && pendingClients.length > 0 && (
+            <div style={{
+              marginBottom: '18px',
+              padding: '16px',
+              borderRadius: '18px',
+              background: 'rgba(59, 130, 246, 0.08)',
+              border: '1px solid rgba(96, 165, 250, 0.18)',
+            }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#bfdbfe', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Join Requests
+              </p>
+              <div style={{ marginTop: '12px', display: 'grid', gap: '10px' }}>
+                {pendingClients.map((client) => (
+                  <div
+                    key={client.participantId}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      padding: '12px 14px',
+                      borderRadius: '14px',
+                      background: 'rgba(15, 23, 42, 0.72)',
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, color: '#e2e8f0', fontWeight: 600 }}>{client.username}</p>
+                      <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: '12px' }}>
+                        Wants to join as {client.role === 'spectator' ? 'spectator' : 'editor'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => admitParticipant(client.participantId)}
+                      style={{ width: 'auto', padding: '10px 12px' }}
+                    >
+                      Admit
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {!isCollapsed && (
             <div className="clientList" style={{ padding: '20px 0' }}>
               <AnimatePresence>
@@ -395,7 +500,7 @@ const EditorPage = () => {
                 <MessageSquare size={16} /> Chat
               </button>
             )}
-            {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Spectator Invite</button>}
+            {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Invite</button>}
             <button className={`btn-primary LeaveBtn ${isCollapsed ? 'collapsed-btn' : ''}`} onClick={leaveRoom}><LogOut size={16} /> {!isCollapsed && 'Leave'}</button>
           </div>
         </div>
