@@ -12,12 +12,14 @@ const Home = () => {
     const [roomId, setRoomId] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('editor');
+    const [mode, setMode] = useState('vanilla');
     const [createdRoomId, setCreatedRoomId] = useState('');
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const inviteRoomId = params.get('roomId');
         const inviteRole = params.get('role');
+        const inviteMode = params.get('mode');
 
         if (inviteRoomId) {
             setRoomId(inviteRoomId);
@@ -25,6 +27,10 @@ const Home = () => {
 
         if (inviteRole === 'spectator' || inviteRole === 'editor') {
             setRole(inviteRole);
+        }
+
+        if (inviteMode === 'react' || inviteMode === 'vanilla') {
+            setMode(inviteMode);
         }
     }, [location.search]);
 
@@ -35,10 +41,10 @@ const Home = () => {
 
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         return {
-            editor: `${baseUrl}/home?roomId=${createdRoomId}&role=editor`,
-            spectator: `${baseUrl}/home?roomId=${createdRoomId}&role=spectator`,
+            editor: `${baseUrl}/home?roomId=${createdRoomId}&role=editor&mode=${mode}`,
+            spectator: `${baseUrl}/home?roomId=${createdRoomId}&role=spectator&mode=${mode}`,
         };
-    }, [createdRoomId]);
+    }, [createdRoomId, mode]);
 
     const CreateNewRoom = (e) => {
         e.preventDefault();
@@ -55,10 +61,13 @@ const Home = () => {
             return;
         }
 
-        navigate(`/editor/${roomId}`, {
+        const destination = mode === 'react' ? `/react-studio/${roomId}` : `/editor/${roomId}`;
+
+        navigate(destination, {
                 state: {
                     username,
                     role,
+                    mode,
                     participantId: uuidV4(),
                 }
             });
@@ -124,13 +133,27 @@ const Home = () => {
                             <span>Spectator</span>
                         </button>
                     </div>
+                    <div className="modeSelectWrapper">
+                        <label htmlFor="workspace-mode" className="modeLabel">Workspace</label>
+                        <select
+                            id="workspace-mode"
+                            className="modeSelect"
+                            value={mode}
+                            onChange={(e) => setMode(e.target.value)}
+                        >
+                            <option value="vanilla">HTML, CSS and JavaScript</option>
+                            <option value="react">React Studio</option>
+                        </select>
+                    </div>
                     <p className='roleHint'>
                         {role === 'spectator'
                             ? 'Spectators can join and watch changes live, but cannot edit the code.'
-                            : 'Editors can type, run JavaScript, and collaborate live in the room.'}
+                            : mode === 'react'
+                                ? 'Editors can build React components together with a live JSX and CSS preview.'
+                                : 'Editors can type, run JavaScript, and collaborate live in the room.'}
                     </p>
                     <button onClick={joinRoom} className='btn-primary joinBtn'>
-                        <LogIn size={18} /> Join as {role === 'spectator' ? 'Spectator' : 'Editor'}
+                        <LogIn size={18} /> Join {mode === 'react' ? 'React Studio' : 'Editor'} as {role === 'spectator' ? 'Spectator' : 'Editor'}
                     </button>
                     {inviteLinks && (
                         <div className="invitePanel">

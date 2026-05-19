@@ -4,7 +4,7 @@ import Editor from '../components/Editor';
 import EditorHTML from '../components/Editorhtml';
 import EditorCSS from '../components/Editorcss';
 import Chat from '../components/Chat';
-import { initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
+import { backend, initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
 import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
@@ -305,17 +305,24 @@ const EditorPage = () => {
       return;
     }
 
+    if (!jsCode.trim()) {
+      setActiveTab('terminal');
+      setOutput('No JavaScript code to execute.');
+      return;
+    }
+
     setIsRunning(true);
     setActiveTab('terminal');
     setOutput('Executing code...');
     try {
-      const res = await axios.post('https://emacs.piston.rs/api/v2/execute', {
-        language: 'javascript',
-        version: '18.15.0',
-        files: [{ content: jsCode }],
+      const res = await axios.post(`${backend}/api/execute`, {
+        code: jsCode,
       });
       
-      let finalOutput = res.data.run?.output || res.data.message || 'Execution finished with no output.';
+      const finalOutput =
+        res.data?.output ||
+        res.data?.message ||
+        'Execution finished with no output.';
       setOutput(finalOutput);
 
       // Broadcast output to everyone in the room

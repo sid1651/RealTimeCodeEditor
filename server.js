@@ -1,13 +1,32 @@
 const express = require('express');
+const cors = require('cors');
 
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
+require('dotenv').config(); 
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
 const { Server } = require('socket.io');
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  },
 });
-require('dotenv').config(); 
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'OPTIONS'],
+}));
+app.options('*', cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'OPTIONS'],
+}));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static('build'));
 
 
@@ -15,6 +34,64 @@ const userSocketMap = {}; // Maps socketId to { username, role, participantId, i
 const roomStateMap = {}; // Maps roomId to { leaderParticipantId, pendingClients }
 const ACTIONS = require('./src/Actions'); // adjust path if needed
 const path = require('path');
+
+app.post('/api/execute', async (req, res) => {
+  const source = typeof req.body?.code === 'string' ? req.body.code : '';
+
+  if (!source.trim()) {
+    return res.status(400).json({
+      message: 'JavaScript code is required to run the program.',
+    });
+  }
+
+  try {
+    const executionResponse = await fetch('https://emacs.piston.rs/api/v2/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        language: 'javascript',
+        version: '18.15.0',
+        files: [{ content: source }],
+      }),
+    });
+
+    const rawBody = await executionResponse.text();
+    let payload = {};
+
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      payload = { message: rawBody || 'Execution service returned an unreadable response.' };
+    }
+
+    if (!executionResponse.ok) {
+      return res.status(executionResponse.status).json({
+        message: payload?.message || 'Execution service failed to run the code.',
+        details: payload,
+      });
+    }
+
+    const output =
+      payload?.run?.output ||
+      payload?.message ||
+      payload?.compile?.stderr ||
+      payload?.run?.stderr ||
+      'Execution finished with no output.';
+
+    return res.json({
+      output,
+      details: payload,
+    });
+  } catch (error) {
+    return res.status(502).json({
+      message: 'Unable to reach the execution service.',
+      details: error.message,
+    });
+  }
+});
+
 app.use((req,res,next)=>{
 res.sendFile(path.join(__dirname,'build','index.html'))
 })
@@ -169,12 +246,13 @@ function setupNamespace(namespace) {
       io.of(namespace).to(socketId).emit(ACTIONS.CODE_CHANGE, { code, editorType });
     });
 
-    socket.on('cursor-change', ({ roomId, username, color, cursor }) => {
+    socket.on('cursor-change', ({ roomId, username, color, cursor, editorType }) => {
       socket.in(roomId).emit('cursor-change', {
         socketId: socket.id,
         username,
         color,
         cursor,
+        editorType,
       });
     });
 
@@ -254,6 +332,10 @@ function setupNamespace(namespace) {
 
     socket.on('send-message', ({ roomId, message, username, time }) => {
       socket.in(roomId).emit('receive-message', { message, username, time });
+    });
+
+    socket.on('code-output', ({ roomId, output, username }) => {
+      socket.in(roomId).emit('code-output', { output, username });
     });
 
     socket.on('disconnecting', () => {

@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './pages/landingpage';
 import Signlog from './pages/signlog';
 import Signup from './pages/signup';
+import ReactStudioPage from './pages/ReactStudioPage';
 import { ToastContainer } from 'react-toastify';
 
 
@@ -35,6 +36,7 @@ function App() {
         <Route path="/signin" element={<Signlog/>}></Route>
         <Route path="/" element ={<LandingPage/>}></Route>
         <Route path="/home" element={<Home />} ></Route>
+        <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
         <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
       </Routes>
       
