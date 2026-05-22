@@ -1,110 +1,67 @@
 const express = require('express');
+const http = require('http');
+const path = require('path');
 const cors = require('cors');
+const { Server } = require('socket.io');
+require('dotenv').config();
+
+const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
+const ACTIONS = require('./src/Actions');
 
 const app = express();
-const http = require('http');
 const server = http.createServer(app);
-require('dotenv').config(); 
+
 const allowedOrigins = [
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  'http://localhost:5001',
+  'http://127.0.0.1:5001',
 ].filter(Boolean);
-const { Server } = require('socket.io');
+
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    origin: allowedOrigins.length ? allowedOrigins : '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
   },
 });
-app.use(cors({
-  origin: allowedOrigins,
+
+const corsOptions = {
+  origin: allowedOrigins.length ? allowedOrigins : '*',
   methods: ['GET', 'POST', 'OPTIONS'],
-}));
-app.options('*', cors({
-  origin: allowedOrigins,
-  methods: ['GET', 'POST', 'OPTIONS'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static('build'));
 
-
-const userSocketMap = {}; // Maps socketId to { username, role, participantId, isLeader }
-const roomStateMap = {}; // Maps roomId to { leaderParticipantId, pendingClients }
-const ACTIONS = require('./src/Actions'); // adjust path if needed
-const path = require('path');
-
-app.post('/api/execute', async (req, res) => {
-  const source = typeof req.body?.code === 'string' ? req.body.code : '';
-
-  if (!source.trim()) {
-    return res.status(400).json({
-      message: 'JavaScript code is required to run the program.',
-    });
-  }
-
-  try {
-    const executionResponse = await fetch('https://emacs.piston.rs/api/v2/execute', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        language: 'javascript',
-        version: '18.15.0',
-        files: [{ content: source }],
-      }),
-    });
-
-    const rawBody = await executionResponse.text();
-    let payload = {};
-
-    try {
-      payload = rawBody ? JSON.parse(rawBody) : {};
-    } catch {
-      payload = { message: rawBody || 'Execution service returned an unreadable response.' };
-    }
-
-    if (!executionResponse.ok) {
-      return res.status(executionResponse.status).json({
-        message: payload?.message || 'Execution service failed to run the code.',
-        details: payload,
-      });
-    }
-
-    const output =
-      payload?.run?.output ||
-      payload?.message ||
-      payload?.compile?.stderr ||
-      payload?.run?.stderr ||
-      'Execution finished with no output.';
-
-    return res.json({
-      output,
-      details: payload,
-    });
-  } catch (error) {
-    return res.status(502).json({
-      message: 'Unable to reach the execution service.',
-      details: error.message,
-    });
-  }
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
-app.use((req,res,next)=>{
-res.sendFile(path.join(__dirname,'build','index.html'))
-})
+app.use('/api/auth', authRoutes);
+
+const userSocketMap = {};
+const roomStateMap = {};
+
+function getNamespaceAdapterRoom(namespace, roomId) {
+  return io.of(namespace).adapter.rooms.get(roomId);
+}
 
 function getAllConnectedClients(roomId, namespace) {
-  return Array.from(io.of(namespace).adapter.rooms.get(roomId) || []).map((socketId) => {
+  return Array.from(getNamespaceAdapterRoom(namespace, roomId) || []).map((socketId) => {
     const info = userSocketMap[socketId] || {};
     return {
       socketId,
       username: info.username,
       role: info.role,
       participantId: info.participantId,
-      isLeader: info.isLeader
+      isLeader: info.isLeader,
     };
   });
 }
@@ -183,15 +140,12 @@ function cleanupRoomIfEmpty(roomId) {
   }
 }
 
-// Helper to attach listeners per namespace
 function setupNamespace(namespace) {
   io.of(namespace).on('connection', (socket) => {
-    console.log(`socket connected to ${namespace}`, socket.id);
-
     socket.on(ACTIONS.JOIN, ({ roomId, username, role, participantId }) => {
       if (namespace === '/js') {
         const roomState = getRoomState(roomId);
-        const clientsInRoom = io.of(namespace).adapter.rooms.get(roomId);
+        const clientsInRoom = getNamespaceAdapterRoom(namespace, roomId);
         const isFirst = !clientsInRoom || clientsInRoom.size === 0;
 
         if (!isFirst) {
@@ -225,7 +179,6 @@ function setupNamespace(namespace) {
       socket.join(roomId);
 
       const clients = getAllConnectedClients(roomId, namespace);
-      console.log(`${username} joined room ${roomId} in ${namespace}`);
 
       clients.forEach(({ socketId: clientId }) => {
         io.of(namespace).to(clientId).emit(ACTIONS.JOINED, {
@@ -233,7 +186,7 @@ function setupNamespace(namespace) {
           pendingClients: namespace === '/js' ? roomState.pendingClients : [],
           username,
           socketId: socket.id,
-          participantId
+          participantId,
         });
       });
     });
@@ -265,20 +218,20 @@ function setupNamespace(namespace) {
       }
 
       let targetUsername = '';
-      for (const [sId, info] of Object.entries(userSocketMap)) {
+      for (const [, info] of Object.entries(userSocketMap)) {
         if (info.participantId === participantId) {
           info.role = role;
           targetUsername = info.username;
-          break;
         }
       }
+
       const clients = getAllConnectedClients(roomId, namespace);
       io.of(namespace).to(roomId).emit(ACTIONS.ROLE_CHANGED, {
         clients,
         pendingClients: roomState.pendingClients,
         participantId,
         role,
-        username: targetUsername
+        username: targetUsername,
       });
     });
 
@@ -341,6 +294,7 @@ function setupNamespace(namespace) {
     socket.on('disconnecting', () => {
       const rooms = [...socket.rooms];
       const info = userSocketMap[socket.id] || {};
+
       Object.entries(roomStateMap).forEach(([roomId, roomState]) => {
         const pendingIndex = roomState.pendingClients.findIndex((client) => client.socketId === socket.id);
         if (pendingIndex !== -1) {
@@ -390,12 +344,24 @@ function setupNamespace(namespace) {
   });
 }
 
-// Setup namespaces
 setupNamespace('/');
 setupNamespace('/js');
 setupNamespace('/html');
 setupNamespace('/css');
-const PORT = process.env.SERVER_PORT || process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
+
+const PORT = process.env.SERVER_PORT || process.env.PORT || 5000;
+
+connectDB()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to start server:', error.message);
+    process.exit(1);
+  });

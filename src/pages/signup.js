@@ -1,11 +1,55 @@
-
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-
-
+import axios from "axios";
+import { toast } from "react-hot-toast";
+import { backend } from "../socket";
+import { saveAuthSession } from "../utils/auth";
 
 function Signup() {
     const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        fullname: '',
+        email: '',
+        password: '',
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!formData.fullname.trim() || !formData.email.trim() || !formData.password.trim()) {
+            toast.error('All fields are required.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { data } = await axios.post(`${backend}/api/auth/register`, {
+                name: formData.fullname.trim(),
+                email: formData.email.trim(),
+                password: formData.password,
+            });
+
+            saveAuthSession({
+                token: data.token,
+                user: data.user,
+            });
+            toast.success('Account created successfully.');
+            navigate('/home');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Unable to create account.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
 
     return (
@@ -30,7 +74,7 @@ function Signup() {
                 <section className="signup-panel-wrap">
                     <div className="signup-panel" role="region" aria-label="Authentication panel">
                         <div className="signup-panel-inner">
-                            <form className="signup-form" >
+                            <form className="signup-form" onSubmit={handleSubmit}>
                                 <h2 className="signup-form-title">Create your account</h2>
 
                                 <label className="signup-field">
@@ -39,7 +83,8 @@ function Signup() {
                                         name="fullname"
                                         type="text"
                                         placeholder="John Doe"
-                                        
+                                        value={formData.fullname}
+                                        onChange={handleChange}
                                         required
                                     />
                                 </label>
@@ -50,7 +95,8 @@ function Signup() {
                                         name="email"
                                         type="email"
                                         placeholder="you@company.com"
-                                        
+                                        value={formData.email}
+                                        onChange={handleChange}
                                         required
                                     />
                                 </label>
@@ -61,13 +107,16 @@ function Signup() {
                                         name="password"
                                         type="password"
                                         placeholder="••••••••"
-                                        
+                                        value={formData.password}
+                                        onChange={handleChange}
                                         required
                                         minLength={6}
                                     />
                                 </label>
 
-                                <button type="submit" className="signup-submit-btn">Sign Up</button>
+                                <button type="submit" className="signup-submit-btn" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+                                </button>
 
                                 <div className="signup-divider"><span>or</span></div>
 

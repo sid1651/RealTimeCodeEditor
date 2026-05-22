@@ -1,8 +1,53 @@
-
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-hot-toast";
+import { backend } from "../socket";
+import { saveAuthSession } from "../utils/auth";
 
 export default function Signlog() {
 const navigate=useNavigate();
+const [formData, setFormData] = useState({
+  email: '',
+  password: '',
+});
+const [isSubmitting, setIsSubmitting] = useState(false);
+
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+  }));
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!formData.email.trim() || !formData.password.trim()) {
+    toast.error('Email and password are required.');
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    const { data } = await axios.post(`${backend}/api/auth/login`, {
+      email: formData.email.trim(),
+      password: formData.password,
+    });
+
+    saveAuthSession({
+      token: data.token,
+      user: data.user,
+    });
+    toast.success('Signed in successfully.');
+    navigate('/home');
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Unable to sign in.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="auth-root">
@@ -53,20 +98,37 @@ const navigate=useNavigate();
     <section className="auth-panel-wrap">
       <div className="auth-panel signin-mode" role="region" aria-label="Authentication panel">
         <div className="panel-inner">
-          <form className="auth-form">
+          <form className="auth-form" onSubmit={handleSubmit}>
             <h2 className="form-title">Welcome back</h2>
 
             <label className="field">
               <span className="label">Email</span>
-              <input name="email" type="email" placeholder="you@company.com" required />
+              <input
+                name="email"
+                type="email"
+                placeholder="you@company.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
             </label>
 
             <label className="field">
               <span className="label">Password</span>
-              <input name="password" type="password" placeholder="••••••••" required minLength={6} />
+              <input
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={6}
+              />
             </label>
 
-            <button className="submit-btn" type="submit">Sign In</button>
+            <button className="submit-btn" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Signing In...' : 'Sign In'}
+            </button>
 
             <div className="divider"><span>or</span></div>
 
