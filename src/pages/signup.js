@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { backend } from "../socket";
-import { saveAuthSession } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 function Signup() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
@@ -38,12 +39,12 @@ function Signup() {
                 password: formData.password,
             });
 
-            saveAuthSession({
+            login({
                 token: data.token,
                 user: data.user,
             });
             toast.success('Account created successfully.');
-            navigate('/home');
+            navigate('/dashboard');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Unable to create account.');
         } finally {

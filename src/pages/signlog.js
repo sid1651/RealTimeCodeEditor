@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { backend } from "../socket";
-import { saveAuthSession } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function Signlog() {
 const navigate=useNavigate();
+const { login } = useAuth();
 const [formData, setFormData] = useState({
   email: '',
   password: '',
@@ -36,12 +37,12 @@ const handleSubmit = async (e) => {
       password: formData.password,
     });
 
-    saveAuthSession({
+    login({
       token: data.token,
       user: data.user,
     });
     toast.success('Signed in successfully.');
-    navigate('/home');
+    navigate('/dashboard');
   } catch (error) {
     toast.error(error.response?.data?.message || 'Unable to sign in.');
   } finally {

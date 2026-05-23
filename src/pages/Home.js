@@ -5,10 +5,14 @@ import toast from 'react-hot-toast';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Copy, Eye, KeyRound, LogIn, PencilLine, User } from 'lucide-react';
+import { createRoom } from '../utils/roomApi';
+import { useAuth } from '../context/AuthContext';
+import { getApiBaseUrlCandidates, getApiBaseUrl } from '../utils/api';
 
 const Home = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [roomId, setRoomId] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('editor');
@@ -46,13 +50,57 @@ const Home = () => {
         };
     }, [createdRoomId, mode]);
 
-    const CreateNewRoom = (e) => {
+    const CreateNewRoom = async (e) => {
         e.preventDefault();
-        const id = uuidV4();
-        setRoomId(id);
-        setCreatedRoomId(id);
-        setRole('editor');
-        toast.success('Created a new room');
+
+        if (!user) {
+            const id = uuidV4();
+            setRoomId(id);
+            setCreatedRoomId(id);
+            setRole('editor');
+            toast.success('Created a new room (Local fallback)');
+            return;
+        }
+
+        try {
+            console.debug('[Home:create-room]', {
+                activeBaseUrl: getApiBaseUrl(),
+                candidateBaseUrls: getApiBaseUrlCandidates(),
+                mode,
+                userId: user.id,
+                hasUser: Boolean(user),
+                locationOrigin: typeof window !== 'undefined' ? window.location.origin : null,
+            });
+
+            const data = await createRoom({
+                title: `New ${mode === 'react' ? 'React' : 'Vanilla'} Project`,
+                language: mode,
+                privacy: 'shared',
+                template: 'blank'
+            });
+
+            const id = data.room.roomId;
+            console.debug('[Home:create-room:success]', {
+                roomId: id,
+                room: data.room,
+            });
+            setRoomId(id);
+            setCreatedRoomId(id);
+            setRole('editor');
+            toast.success('Created a new room');
+            navigate('/dashboard', {
+                state: {
+                    createdRoomId: id,
+                },
+            });
+        } catch (error) {
+            console.error('Failed to create room via API.', error.response || error);
+            toast.error(
+                error.response?.data?.message
+                || error.message
+                || 'Unable to create room right now.'
+            );
+        }
     };
 
     const joinRoom = () => {

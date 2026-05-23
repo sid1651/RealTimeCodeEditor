@@ -7,6 +7,10 @@ require('dotenv').config();
 
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const roomRoutes = require('./routes/roomRoutes');
+const Room = require('./models/Room');
+const { createNotification } = require('./utils/notificationService');
 const ACTIONS = require('./src/Actions');
 
 const app = express();
@@ -24,13 +28,13 @@ const allowedOrigins = [
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins.length ? allowedOrigins : '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   },
 });
 
 const corsOptions = {
   origin: allowedOrigins.length ? allowedOrigins : '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 200,
 };
@@ -45,6 +49,73 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/rooms', roomRoutes);
+
+app.post('/api/execute', async (req, res) => {
+  const source = typeof req.body?.code === 'string' ? req.body.code : '';
+
+  if (!source.trim()) {
+    return res.status(400).json({
+      message: 'JavaScript code is required to run the program.',
+    });
+  }
+
+  try {
+    const executionResponse = await fetch('https://emacs.piston.rs/api/v2/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        language: 'javascript',
+        version: '18.15.0',
+        files: [{ content: source }],
+      }),
+    });
+
+    const rawBody = await executionResponse.text();
+    let payload = {};
+
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      payload = { message: rawBody || 'Execution service returned an unreadable response.' };
+    }
+
+    if (!executionResponse.ok) {
+      return res.status(executionResponse.status).json({
+        message: payload?.message || 'Execution service failed to run the code.',
+        details: payload,
+      });
+    }
+
+    const output =
+      payload?.run?.output ||
+      payload?.message ||
+      payload?.compile?.stderr ||
+      payload?.run?.stderr ||
+      'Execution finished with no output.';
+
+    return res.json({
+      output,
+      details: payload,
+    });
+  } catch (error) {
+    return res.status(502).json({
+      message: 'Unable to reach the execution service.',
+      details: error.message,
+    });
+  }
+});
+
+app.use('/api', (req, res) => {
+  res.status(404).json({
+    message: 'API route not found.',
+    method: req.method,
+    path: req.originalUrl,
+  });
+});
 
 const userSocketMap = {};
 const roomStateMap = {};
@@ -62,6 +133,7 @@ function getAllConnectedClients(roomId, namespace) {
       role: info.role,
       participantId: info.participantId,
       isLeader: info.isLeader,
+      userId: info.userId,
     };
   });
 }
@@ -140,9 +212,23 @@ function cleanupRoomIfEmpty(roomId) {
   }
 }
 
+async function syncRoomActivity(roomId, activeUsers) {
+  try {
+    await Room.findOneAndUpdate(
+      { roomId },
+      {
+        activeUsers,
+        lastOpenedAt: new Date(),
+      }
+    );
+  } catch (error) {
+    console.error(`Failed to sync room activity for ${roomId}:`, error.message);
+  }
+}
+
 function setupNamespace(namespace) {
   io.of(namespace).on('connection', (socket) => {
-    socket.on(ACTIONS.JOIN, ({ roomId, username, role, participantId }) => {
+    socket.on(ACTIONS.JOIN, ({ roomId, username, role, participantId, userId }) => {
       if (namespace === '/js') {
         const roomState = getRoomState(roomId);
         const clientsInRoom = getNamespaceAdapterRoom(namespace, roomId);
@@ -159,7 +245,7 @@ function setupNamespace(namespace) {
             });
           }
 
-          userSocketMap[socket.id] = { username, role, participantId, isLeader: false };
+          userSocketMap[socket.id] = { username, role, participantId, isLeader: false, userId: userId || null };
           socket.emit(ACTIONS.JOIN_PENDING, {
             pendingClients: roomState.pendingClients,
           });
@@ -175,10 +261,13 @@ function setupNamespace(namespace) {
         ? participantId === roomState.leaderParticipantId
         : false;
 
-      userSocketMap[socket.id] = { username, role, participantId, isLeader };
+      userSocketMap[socket.id] = { username, role, participantId, isLeader, userId: userId || null };
       socket.join(roomId);
 
       const clients = getAllConnectedClients(roomId, namespace);
+      if (namespace === '/js') {
+        syncRoomActivity(roomId, clients.length);
+      }
 
       clients.forEach(({ socketId: clientId }) => {
         io.of(namespace).to(clientId).emit(ACTIONS.JOINED, {
@@ -209,7 +298,7 @@ function setupNamespace(namespace) {
       });
     });
 
-    socket.on(ACTIONS.UPDATE_ROLE, ({ roomId, participantId, role }) => {
+    socket.on(ACTIONS.UPDATE_ROLE, async ({ roomId, participantId, role }) => {
       const requester = userSocketMap[socket.id];
       const roomState = getRoomState(roomId);
 
@@ -218,12 +307,30 @@ function setupNamespace(namespace) {
       }
 
       let targetUsername = '';
+      let targetUserId = null;
       for (const [, info] of Object.entries(userSocketMap)) {
         if (info.participantId === participantId) {
           info.role = role;
           targetUsername = info.username;
+          targetUserId = info.userId;
         }
       }
+
+      const room = await Room.findOne({ roomId }).select('roomId title');
+      await createNotification({
+        recipientUser: targetUserId,
+        actorUser: requester.userId || null,
+        actorName: requester.username,
+        roomId: room?.roomId || roomId,
+        roomTitle: room?.title || '',
+        type: 'role_change',
+        title: 'Room role updated',
+        message: `${requester.username} changed your role to ${role} in ${room?.title || 'a room'}.`,
+        metadata: {
+          role,
+          participantId,
+        },
+      });
 
       const clients = getAllConnectedClients(roomId, namespace);
       io.of(namespace).to(roomId).emit(ACTIONS.ROLE_CHANGED, {
@@ -235,7 +342,7 @@ function setupNamespace(namespace) {
       });
     });
 
-    socket.on(ACTIONS.ADMIT_PARTICIPANT, ({ roomId, participantId }) => {
+    socket.on(ACTIONS.ADMIT_PARTICIPANT, async ({ roomId, participantId }) => {
       if (namespace !== '/js') {
         return;
       }
@@ -273,6 +380,18 @@ function setupNamespace(namespace) {
       pendingSocket.join(roomId);
       io.of('/js').to(pendingClient.socketId).emit(ACTIONS.JOIN_APPROVED, {
         roomId,
+      });
+
+      const room = await Room.findOne({ roomId }).select('roomId title');
+      await createNotification({
+        recipientUser: pendingInfo.userId,
+        actorUser: requester.userId || null,
+        actorName: requester.username,
+        roomId: room?.roomId || roomId,
+        roomTitle: room?.title || '',
+        type: 'join_request_approved',
+        title: 'Join request approved',
+        message: `${requester.username} approved your request to join ${room?.title || 'the room'}.`,
       });
 
       broadcastRoomSnapshot(roomId, {
@@ -325,6 +444,9 @@ function setupNamespace(namespace) {
 
         const clients = namespace === '/js' ? getAllConnectedClients(roomId, namespace) : undefined;
         const pendingClients = namespace === '/js' ? getPendingClients(roomId) : undefined;
+        if (namespace === '/js') {
+          syncRoomActivity(roomId, clients?.length || 0);
+        }
 
         socket.in(roomId).emit(ACTIONS.DISCONNECTED, {
           socketId: socket.id,

@@ -198,6 +198,19 @@ const EditorCSS = ({ socketRef, roomId, onCodeChange, isClientCollapsed = false,
     }
   }, [readOnly]);
 
+  useEffect(() => {
+    if (!editorRef.current) {
+      return;
+    }
+
+    const currentValue = editorRef.current.getValue();
+    const nextValue = value || '';
+
+    if (currentValue !== nextValue) {
+      editorRef.current.setValue(nextValue);
+    }
+  }, [value]);
+
   return (
     <div
       ref={wrapperRef}

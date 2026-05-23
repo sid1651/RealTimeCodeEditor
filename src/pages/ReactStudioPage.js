@@ -3,11 +3,13 @@ import Client from '../components/Client';
 import CollaborativeCodeEditor from '../components/CollaborativeCodeEditor';
 import Chat from '../components/Chat';
 import { initSocketJS, initSocketCSS } from '../socket';
-import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, TerminalSquare, UserPlus, Copy } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { getRoomById, updateRoom } from '../utils/roomApi';
 
 const DEFAULT_REACT_CODE = `function App() {
   const [count, setCount] = useState(0);
@@ -198,12 +200,16 @@ const ReactStudioPage = () => {
   const socketCssRef = useRef(null);
   const codeRef = useRef({ react: '', reactCss: '' });
   const iframeRef = useRef(null);
+  const roomLoadedRef = useRef(false);
+  const latestCodeRef = useRef({ react: '', reactCss: '' });
 
   const { roomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const username = location.state?.username || 'Anonymous';
-  const initialRoleRef = useRef(location.state?.role === 'spectator' ? 'spectator' : 'editor');
+  const { user } = useAuth();
+  const queryRole = new URLSearchParams(location.search).get('role');
+  const username = location.state?.username || user?.name || 'Anonymous';
+  const initialRoleRef = useRef(location.state?.role === 'spectator' || queryRole === 'spectator' ? 'spectator' : 'editor');
   const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
   const [userRole, setUserRole] = useState(initialRoleRef.current);
   const userRoleRef = useRef(initialRoleRef.current);
@@ -229,16 +235,92 @@ const ReactStudioPage = () => {
   useEffect(() => {
     localStorage.setItem(`reactCode_${roomId}`, reactCode);
     codeRef.current.react = reactCode;
+    latestCodeRef.current.react = reactCode;
   }, [reactCode, roomId]);
 
   useEffect(() => {
     localStorage.setItem(`reactStudioCss_${roomId}`, cssCode);
     codeRef.current.reactCss = cssCode;
+    latestCodeRef.current.reactCss = cssCode;
   }, [cssCode, roomId]);
 
   useEffect(() => {
     userRoleRef.current = userRole;
   }, [userRole]);
+
+  useEffect(() => {
+    const loadRoom = async () => {
+      try {
+        const data = await getRoomById(roomId);
+        const room = data.room;
+        if (!room) {
+          return;
+        }
+
+        roomLoadedRef.current = true;
+        const nextCode = room.code || {};
+        setReactCode(nextCode.react || DEFAULT_REACT_CODE);
+        setCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Unable to load room data.');
+      }
+    };
+
+    loadRoom();
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomLoadedRef.current) {
+      return undefined;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        await updateRoom(roomId, {
+          lastOpenedAt: new Date().toISOString(),
+          code: {
+            react: reactCode,
+            reactCss: cssCode,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to persist React room', error);
+      }
+    }, 900);
+
+    return () => clearTimeout(timeout);
+  }, [cssCode, reactCode, roomId]);
+
+  useEffect(() => {
+    const flushRoomState = async () => {
+      if (!roomLoadedRef.current) {
+        return;
+      }
+
+      try {
+        await updateRoom(roomId, {
+          lastOpenedAt: new Date().toISOString(),
+          code: {
+            react: latestCodeRef.current.react,
+            reactCss: latestCodeRef.current.reactCss,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to flush React room state on exit', error);
+      }
+    };
+
+    const handlePageHide = () => {
+      flushRoomState();
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      flushRoomState();
+    };
+  }, [roomId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +355,7 @@ const ReactStudioPage = () => {
         }
       });
 
-      const joinPayload = { roomId, username, role: userRoleRef.current, participantId: participantIdRef.current };
+      const joinPayload = { roomId, username, role: userRoleRef.current, participantId: participantIdRef.current, userId: user?.id || null };
       socketCssRef.current.emit(ACTIONS.JOIN, joinPayload);
       setSocketsReady(true);
     };
@@ -305,7 +387,7 @@ const ReactStudioPage = () => {
           await initSecondarySocket();
         });
 
-        const joinPayload = { roomId, username, role: initialRoleRef.current, participantId: participantIdRef.current };
+        const joinPayload = { roomId, username, role: initialRoleRef.current, participantId: participantIdRef.current, userId: user?.id || null };
         socketReactRef.current.emit(ACTIONS.JOIN, joinPayload);
 
         socketReactRef.current.on(ACTIONS.JOINED, async ({ clients: joinedClients, pendingClients: incomingPendingClients, username: joinedUsername, socketId, participantId }) => {
@@ -379,7 +461,7 @@ const ReactStudioPage = () => {
       socketReactRef.current = null;
       socketCssRef.current = null;
     };
-  }, [navigate, roomId, username]);
+  }, [navigate, roomId, username, user?.id]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -447,15 +529,13 @@ const ReactStudioPage = () => {
 
   const copySpectatorInvite = async () => {
     try {
-      const link = `${window.location.origin}/home?roomId=${roomId}&role=spectator&mode=react`;
+      const link = `${window.location.origin}/react-studio/${roomId}?role=spectator`;
       await navigator.clipboard.writeText(link);
       toast.success('Spectator Invite copied!');
     } catch {
       toast.error('Failed to copy invite');
     }
   };
-
-  if (!location.state) return <Navigate to="/" />;
 
   if (joinStatus !== 'approved') {
     const isWaitingForHost = joinStatus === 'pending';

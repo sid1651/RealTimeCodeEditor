@@ -4,13 +4,16 @@ import Editor from '../components/Editor';
 import EditorHTML from '../components/Editorhtml';
 import EditorCSS from '../components/Editorcss';
 import Chat from '../components/Chat';
-import { backend, initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
-import { useLocation, useParams, useNavigate, Navigate } from 'react-router-dom';
+import { initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, Play, TerminalSquare, UserPlus, Copy } from 'lucide-react';
-import axios from 'axios';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, Play, TerminalSquare, UserPlus, Copy, Save, RotateCcw, History } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../utils/api';
+import { getRoomById, inviteUserToRoom, updateRoom } from '../utils/roomApi';
+import { checkoutRoomSnapshot, createRoomSnapshot, getRoomSnapshots } from '../utils/snapshotApi';
 
 
 // 
@@ -19,14 +22,18 @@ const EditorPage = () => {
   const socketJSRef = useRef(null);
   const socketHTMLRef = useRef(null);
   const socketCSSRef = useRef(null);
+  const roomLoadedRef = useRef(false);
+  const latestCodeRef = useRef({ javascript: '', html: '', css: '' });
 
   const codeRef = useRef({ javascript: '', htmlmixed: '', css: '' });
 
   const { roomId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const username = location.state?.username || 'Anonymous';
-  const initialRoleRef = useRef(location.state?.role === 'spectator' ? 'spectator' : 'editor');
+  const { user } = useAuth();
+  const queryRole = new URLSearchParams(location.search).get('role');
+  const username = location.state?.username || user?.name || 'Anonymous';
+  const initialRoleRef = useRef(location.state?.role === 'spectator' || queryRole === 'spectator' ? 'spectator' : 'editor');
   const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
   const [userRole, setUserRole] = useState(initialRoleRef.current);
   const userRoleRef = useRef(initialRoleRef.current);
@@ -56,28 +63,139 @@ const EditorPage = () => {
   const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'terminal'
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [snapshots, setSnapshots] = useState([]);
+  const [commitMessage, setCommitMessage] = useState('');
+  const [isSnapshotsLoading, setIsSnapshotsLoading] = useState(false);
+  const [isSnapshotSaving, setIsSnapshotSaving] = useState(false);
+  const [isCheckingOutSnapshot, setIsCheckingOutSnapshot] = useState(false);
+  const [currentSnapshotId, setCurrentSnapshotId] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviteSending, setIsInviteSending] = useState(false);
 
   const iframeRef = useRef(null);
+
+  const applyRoomCode = (nextCode = {}) => {
+    setJsCode(nextCode.javascript || '');
+    setHtmlCode(nextCode.html || '');
+    setCssCode(nextCode.css || '');
+  };
 
   // --- SAVE CODE PER ROOM IN LOCAL STORAGE ---
   useEffect(() => {
     localStorage.setItem(`jsCode_${roomId}`, jsCode);
     codeRef.current.javascript = jsCode;
+    latestCodeRef.current.javascript = jsCode;
   }, [jsCode, roomId]);
 
   useEffect(() => {
     localStorage.setItem(`htmlCode_${roomId}`, htmlCode);
     codeRef.current.htmlmixed = htmlCode;
+    latestCodeRef.current.html = htmlCode;
   }, [htmlCode, roomId]);
 
   useEffect(() => {
     localStorage.setItem(`cssCode_${roomId}`, cssCode);
     codeRef.current.css = cssCode;
+    latestCodeRef.current.css = cssCode;
   }, [cssCode, roomId]);
 
   useEffect(() => {
     userRoleRef.current = userRole;
   }, [userRole]);
+
+  useEffect(() => {
+    const loadRoom = async () => {
+      try {
+        const data = await getRoomById(roomId);
+        const room = data.room;
+        if (!room) {
+          return;
+        }
+
+        roomLoadedRef.current = true;
+        const nextCode = room.code || {};
+        applyRoomCode(nextCode);
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Unable to load room data.');
+      }
+    };
+
+    loadRoom();
+  }, [roomId]);
+
+  useEffect(() => {
+    const loadSnapshots = async () => {
+      setIsSnapshotsLoading(true);
+      try {
+        const data = await getRoomSnapshots(roomId);
+        setSnapshots(data.snapshots || []);
+        setCurrentSnapshotId(data.headSnapshotId || null);
+      } catch (error) {
+        console.error('Failed to load room snapshots', error);
+      } finally {
+        setIsSnapshotsLoading(false);
+      }
+    };
+
+    loadSnapshots();
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomLoadedRef.current) {
+      return undefined;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        await updateRoom(roomId, {
+          lastOpenedAt: new Date().toISOString(),
+          code: {
+            javascript: jsCode,
+            html: htmlCode,
+            css: cssCode,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to persist room', error);
+      }
+    }, 900);
+
+    return () => clearTimeout(timeout);
+  }, [cssCode, htmlCode, jsCode, roomId]);
+
+  useEffect(() => {
+    const flushRoomState = async () => {
+      if (!roomLoadedRef.current) {
+        return;
+      }
+
+      try {
+        await updateRoom(roomId, {
+          lastOpenedAt: new Date().toISOString(),
+          code: {
+            javascript: latestCodeRef.current.javascript,
+            html: latestCodeRef.current.html,
+            css: latestCodeRef.current.css,
+          },
+        });
+      } catch (error) {
+        console.error('Failed to flush room state on exit', error);
+      }
+    };
+
+    const handlePageHide = () => {
+      flushRoomState();
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      flushRoomState();
+    };
+  }, [roomId]);
 
   // --- INIT SOCKETS AND JOIN ROOM ---
   useEffect(() => {
@@ -127,7 +245,7 @@ const EditorPage = () => {
         if (typeof payload?.code === 'string') setCssCode(payload.code);
       });
 
-      const joinPayload = { roomId, username, role: userRoleRef.current, participantId: participantIdRef.current };
+      const joinPayload = { roomId, username, role: userRoleRef.current, participantId: participantIdRef.current, userId: user?.id || null };
       socketHTMLRef.current.emit(ACTIONS.JOIN, joinPayload);
       socketCSSRef.current.emit(ACTIONS.JOIN, joinPayload);
       setSocketsReady(true);
@@ -160,7 +278,7 @@ const EditorPage = () => {
           await initSecondarySockets();
         });
 
-        const joinPayload = { roomId, username, role: initialRoleRef.current, participantId: participantIdRef.current };
+        const joinPayload = { roomId, username, role: initialRoleRef.current, participantId: participantIdRef.current, userId: user?.id || null };
         socketJSRef.current.emit(ACTIONS.JOIN, joinPayload);
 
         // --- JOINED EVENT ---
@@ -247,7 +365,7 @@ const EditorPage = () => {
       socketHTMLRef.current = null;
       socketCSSRef.current = null;
     };
-  }, [navigate, roomId, username]);
+  }, [navigate, roomId, username, user?.id]);
 
   const isLeader = clients.some(client => client.participantId === participantIdRef.current && client.isLeader);
 
@@ -272,6 +390,84 @@ const EditorPage = () => {
       roomId,
       participantId: targetParticipantId,
     });
+  };
+
+  const saveSnapshot = async () => {
+    const nextMessage = commitMessage.trim();
+
+    if (isSpectator) {
+      toast.error('Spectators can review history, but cannot create snapshots.');
+      return;
+    }
+
+    if (!nextMessage) {
+      toast.error('Write a commit message before saving a snapshot.');
+      return;
+    }
+
+    setIsSnapshotSaving(true);
+
+    try {
+      const payload = {
+        message: nextMessage,
+        authorName: username,
+        code: {
+          javascript: latestCodeRef.current.javascript,
+          html: latestCodeRef.current.html,
+          css: latestCodeRef.current.css,
+        },
+      };
+
+      const data = await createRoomSnapshot(roomId, payload);
+      setSnapshots((current) => [data.snapshot, ...current]);
+      setCurrentSnapshotId(data.snapshot.snapshotId);
+      setCommitMessage('');
+      toast.success('Snapshot saved.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to save snapshot.');
+    } finally {
+      setIsSnapshotSaving(false);
+    }
+  };
+
+  const checkoutSnapshot = async (snapshot) => {
+    setIsCheckingOutSnapshot(true);
+
+    try {
+      const data = await checkoutRoomSnapshot(roomId, snapshot.snapshotId);
+      applyRoomCode(data.room.code || snapshot.code || {});
+      setCurrentSnapshotId(snapshot.snapshotId);
+
+      if (socketJSRef.current) {
+        socketJSRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code: data.room.code?.javascript || snapshot.code?.javascript || '',
+          editorType: 'js',
+        });
+      }
+
+      if (socketHTMLRef.current) {
+        socketHTMLRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code: data.room.code?.html || snapshot.code?.html || '',
+          editorType: 'html',
+        });
+      }
+
+      if (socketCSSRef.current) {
+        socketCSSRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code: data.room.code?.css || snapshot.code?.css || '',
+          editorType: 'css',
+        });
+      }
+
+      toast.success(`Checked out "${snapshot.message}".`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to checkout snapshot.');
+    } finally {
+      setIsCheckingOutSnapshot(false);
+    }
   };
 
   // --- LIVE PREVIEW UPDATE ---
@@ -315,7 +511,7 @@ const EditorPage = () => {
     setActiveTab('terminal');
     setOutput('Executing code...');
     try {
-      const res = await axios.post(`${backend}/api/execute`, {
+      const res = await api.post('/api/execute', {
         code: jsCode,
       });
       
@@ -349,7 +545,7 @@ const EditorPage = () => {
   // --- COPY SPECTATOR INVITE ---
   const copySpectatorInvite = async () => {
     try {
-      const link = `${window.location.origin}/home?roomId=${roomId}&role=spectator`;
+      const link = `${window.location.origin}/editor/${roomId}?role=spectator`;
       await navigator.clipboard.writeText(link);
       toast.success('Spectator Invite copied!');
     } catch {
@@ -357,7 +553,56 @@ const EditorPage = () => {
     }
   };
 
-  if (!location.state) return <Navigate to="/" />;
+  const openInviteModal = () => {
+    if (!user?.email) {
+      toast.error('Sign in to send room invites.');
+      return;
+    }
+
+    if (isSpectator) {
+      toast.error('Spectators can view the room, but cannot send invites.');
+      return;
+    }
+
+    setIsInviteModalOpen(true);
+  };
+
+  const submitEmailInvite = async (event) => {
+    event.preventDefault();
+
+    const nextEmail = inviteEmail.trim().toLowerCase();
+
+    if (!nextEmail) {
+      toast.error('Enter an email address to invite.');
+      return;
+    }
+
+    setIsInviteSending(true);
+
+    console.debug('[editor:invite:start]', {
+      roomId,
+      email: nextEmail,
+      sender: user?.email || null,
+    });
+
+    try {
+      const data = await inviteUserToRoom(roomId, { email: nextEmail });
+      console.info('[editor:invite:success]', data);
+      setInviteEmail('');
+      setIsInviteModalOpen(false);
+      toast.success(data.message || 'Invite sent successfully.');
+    } catch (error) {
+      console.error('[editor:invite:error]', {
+        roomId,
+        email: nextEmail,
+        message: error.response?.data?.message || error.message,
+        details: error.response?.data || null,
+      });
+      toast.error(error.response?.data?.message || 'Unable to send invite.');
+    } finally {
+      setIsInviteSending(false);
+    }
+  };
 
   if (joinStatus !== 'approved') {
     const isWaitingForHost = joinStatus === 'pending';
@@ -417,6 +662,21 @@ const EditorPage = () => {
   // ✅ Calculate dynamic height based on collapse state
   const visibleEditors = Object.values(collapseEditor).filter(c => !c).length;
   const editorHeight = visibleEditors > 0 ? `${100 / visibleEditors}%` : '0';
+  const formatSnapshotTime = (timestamp) => {
+    const created = new Date(timestamp).getTime();
+    const diffMinutes = Math.max(1, Math.floor((Date.now() - created) / 60000));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    }
+
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
 
   return (
     <div className={`mainWrape ${isCollapsed ? 'collapsed' : ''}`}>
@@ -507,10 +767,31 @@ const EditorPage = () => {
                 <MessageSquare size={16} /> Chat
               </button>
             )}
+            {!isCollapsed && (
+              <button className="btn-primary" onClick={openInviteModal}>
+                <UserPlus size={16} /> Invite Email
+              </button>
+            )}
             {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Invite</button>}
             <button className={`btn-primary LeaveBtn ${isCollapsed ? 'collapsed-btn' : ''}`} onClick={leaveRoom}><LogOut size={16} /> {!isCollapsed && 'Leave'}</button>
           </div>
         </div>
+        {isCollapsed && (
+          <div className="collapsedSidebarRail">
+            <button
+              type="button"
+              className="collapsedRailBtn"
+              onClick={() => setIsHistoryOpen(true)}
+              title="Open history"
+            >
+              <History size={16} />
+            </button>
+
+            <button className="btn-primary LeaveBtn collapsed-btn" onClick={leaveRoom}>
+              <LogOut size={16} />
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Editors + Preview */}
@@ -616,14 +897,24 @@ const EditorPage = () => {
                   <TerminalSquare size={18} /> Terminal
                 </button>
               </div>
-              <button
-                className="btn-primary"
-                onClick={runCode}
-                disabled={isRunning || isSpectator}
-                style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', opacity: (isRunning || isSpectator) ? 0.7 : 1, width: 'auto' }}
-              >
-                <Play size={14} /> {isSpectator ? 'Read Only' : isRunning ? 'Running...' : 'Run JS'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={() => setIsHistoryOpen(true)}
+                  style={{ width: 'auto', padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <History size={14} /> History
+                </button>
+                <button
+                  className="btn-primary"
+                  onClick={runCode}
+                  disabled={isRunning || isSpectator}
+                  style={{ padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', opacity: (isRunning || isSpectator) ? 0.7 : 1, width: 'auto' }}
+                >
+                  <Play size={14} /> {isSpectator ? 'Read Only' : isRunning ? 'Running...' : 'Run JS'}
+                </button>
+              </div>
             </h3>
             {!Colaps && activeTab === 'preview' && (
               <iframe ref={iframeRef} title="Live Preview" style={{ width: '100%', height: 'calc(100% - 50px)', border: 'none', backgroundColor: '#fff' }} />
@@ -636,6 +927,114 @@ const EditorPage = () => {
           </div>
         </div>
       </div>
+
+      {isInviteModalOpen && <div className="dashboardModalBackdrop" onClick={() => setIsInviteModalOpen(false)} />}
+      {isInviteModalOpen && (
+        <div className="dashboardModal inviteRoomModal">
+          <div className="dashboardModalHead">
+            <div>
+              <p className="dashboardEyebrow">Room Access</p>
+              <h3>Invite By Email</h3>
+            </div>
+            <button type="button" className="dashboardIconBtn" onClick={() => setIsInviteModalOpen(false)}>×</button>
+          </div>
+
+          <form className="dashboardModalForm" onSubmit={submitEmailInvite}>
+            <label>
+              Account Email
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="teammate@example.com"
+                autoFocus
+              />
+            </label>
+
+            <p className="editorInviteHint">
+              If this email already has a Kodikos account, they will get a dashboard notification to join this room.
+            </p>
+
+            <button type="submit" className="btn-primary" disabled={isInviteSending}>
+              <UserPlus size={16} /> {isInviteSending ? 'Sending Invite...' : 'Send Invite'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {isHistoryOpen && <div className="historyDrawerBackdrop" onClick={() => setIsHistoryOpen(false)} />}
+      {isHistoryOpen && (
+        <aside className="historyDrawer">
+          <div className="historyDrawerHead">
+            <div>
+              <p className="snapshotPanelEyebrow">Version Control</p>
+              <h3>Room History</h3>
+            </div>
+            <button type="button" className="dashboardIconBtn historyCloseBtn" onClick={() => setIsHistoryOpen(false)}>×</button>
+          </div>
+
+          <div className="snapshotComposer historyComposer">
+            <textarea
+              className="snapshotMessageInput"
+              value={commitMessage}
+              onChange={(event) => setCommitMessage(event.target.value)}
+              placeholder="Write a commit message for this snapshot..."
+              rows={3}
+              disabled={isSpectator || isSnapshotSaving}
+            />
+            <button
+              type="button"
+              className="btn-primary snapshotSaveBtn"
+              onClick={saveSnapshot}
+              disabled={isSpectator || isSnapshotSaving}
+            >
+              <Save size={16} /> {isSnapshotSaving ? 'Saving...' : 'Save Snapshot'}
+            </button>
+          </div>
+
+          <div className="historyTimeline">
+            {isSnapshotsLoading ? (
+              <div className="snapshotEmptyState">Loading history...</div>
+            ) : snapshots.length ? snapshots.map((snapshot, index) => (
+              <div key={snapshot.snapshotId} className="historyTimelineItem">
+                <button
+                  type="button"
+                  className={`historyTimelineDot ${currentSnapshotId === snapshot.snapshotId ? 'active' : ''}`}
+                  onClick={() => checkoutSnapshot(snapshot)}
+                >
+                  <span className="historyDotTooltip">
+                    <strong>{snapshot.message}</strong>
+                    <span>{snapshot.authorName} · {formatSnapshotTime(snapshot.createdAt)}</span>
+                  </span>
+                </button>
+                {index < snapshots.length - 1 ? <div className="historyTimelineConnector" /> : null}
+                <div className={`historyTimelineCard ${currentSnapshotId === snapshot.snapshotId ? 'active' : ''}`}>
+                  <div className="snapshotTreeTopline">
+                    <p>{snapshot.message}</p>
+                    <span>{formatSnapshotTime(snapshot.createdAt)}</span>
+                  </div>
+                  <div className="snapshotTreeMeta">
+                    <span>{snapshot.authorName}</span>
+                    {currentSnapshotId === snapshot.snapshotId ? <strong>Current</strong> : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="snapshotCheckoutBtn"
+                    onClick={() => checkoutSnapshot(snapshot)}
+                    disabled={isCheckingOutSnapshot}
+                  >
+                    <RotateCcw size={14} /> Checkout
+                  </button>
+                </div>
+              </div>
+            )) : (
+              <div className="snapshotEmptyState">
+                Save your first snapshot to build a Git-like room history.
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
 
       {/* Chat Drawer */}
       {socketsReady && (
