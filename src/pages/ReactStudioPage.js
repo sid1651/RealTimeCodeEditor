@@ -7,9 +7,10 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import ACTIONS from '../Actions';
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, TerminalSquare, UserPlus, Copy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, LogOut, Code2, LayoutTemplate, MessageSquare, PencilLine, TerminalSquare, UserPlus, Copy, Save, RotateCcw, History } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getRoomById, updateRoom } from '../utils/roomApi';
+import { getRoomById, inviteUserToRoom, updateRoom } from '../utils/roomApi';
+import { checkoutRoomSnapshot, createRoomSnapshot, getRoomSnapshots } from '../utils/snapshotApi';
 
 const DEFAULT_REACT_CODE = `function App() {
   const [loveCount, setLoveCount] = useState(128);
@@ -359,6 +360,53 @@ body {
   }
 }`;
 
+const isLegacyReactStarter = (source = '') => {
+  const normalized = source.trim();
+  if (!normalized) {
+    return true;
+  }
+
+  const legacyMarkers = [
+    'Hello from Kodikos',
+    'Build React UI together.',
+    'Design something people want to keep open.',
+    'Build together, ship together, and enjoy the process.'
+  ];
+
+  const alreadyLatest = normalized.includes('Kodikos React Studio')
+    && normalized.includes('GitHub fetcher')
+    && normalized.includes('Fetch Repo');
+
+  return !alreadyLatest && legacyMarkers.some((marker) => normalized.includes(marker));
+};
+
+const isLegacyCssStarter = (source = '') => {
+  const normalized = source.trim();
+  if (!normalized) {
+    return true;
+  }
+
+  const legacyMarkers = [
+    '.demo-shell',
+    '.starter-shell',
+    '.love-shell'
+  ];
+
+  const alreadyLatest = normalized.includes('.love-topbar')
+    && normalized.includes('.fetcher-card')
+    && normalized.includes('.topbar-nav');
+
+  return !alreadyLatest && legacyMarkers.some((marker) => normalized.includes(marker));
+};
+
+const getStarterReactCode = (source) => (
+  isLegacyReactStarter(source) ? DEFAULT_REACT_CODE : source
+);
+
+const getStarterCssCode = (source) => (
+  isLegacyCssStarter(source) ? DEFAULT_CSS_CODE : source
+);
+
 const normalizeReactSource = (source) => {
   const withoutImports = source
     .replace(/^\s*import\s.+?;?\s*$/gm, '')
@@ -490,8 +538,8 @@ const ReactStudioPage = () => {
   const userRoleRef = useRef(initialRoleRef.current);
   const isSpectator = userRole === 'spectator';
 
-  const [reactCode, setReactCode] = useState(localStorage.getItem(`reactCode_${roomId}`) || DEFAULT_REACT_CODE);
-  const [cssCode, setCssCode] = useState(localStorage.getItem(`reactStudioCss_${roomId}`) || DEFAULT_CSS_CODE);
+  const [reactCode, setReactCode] = useState(() => getStarterReactCode(localStorage.getItem(`reactCode_${roomId}`) || DEFAULT_REACT_CODE));
+  const [cssCode, setCssCode] = useState(() => getStarterCssCode(localStorage.getItem(`reactStudioCss_${roomId}`) || DEFAULT_CSS_CODE));
   const [clients, setClients] = useState([]);
   const [pendingClients, setPendingClients] = useState([]);
   const [socketsReady, setSocketsReady] = useState(false);
@@ -505,7 +553,22 @@ const ReactStudioPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('preview');
   const [consoleLines, setConsoleLines] = useState(['Preview ready.']);
+  const [snapshots, setSnapshots] = useState([]);
+  const [commitMessage, setCommitMessage] = useState('');
+  const [isSnapshotsLoading, setIsSnapshotsLoading] = useState(false);
+  const [isSnapshotSaving, setIsSnapshotSaving] = useState(false);
+  const [isCheckingOutSnapshot, setIsCheckingOutSnapshot] = useState(false);
+  const [currentSnapshotId, setCurrentSnapshotId] = useState(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviteSending, setIsInviteSending] = useState(false);
   const reactEditorMode = useMemo(() => ({ name: 'javascript', json: false, jsx: true }), []);
+
+  const applyRoomCode = (nextCode = {}) => {
+    setReactCode(nextCode.react || DEFAULT_REACT_CODE);
+    setCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
+  };
 
   useEffect(() => {
     localStorage.setItem(`reactCode_${roomId}`, reactCode);
@@ -534,14 +597,44 @@ const ReactStudioPage = () => {
 
         roomLoadedRef.current = true;
         const nextCode = room.code || {};
-        setReactCode(nextCode.react || DEFAULT_REACT_CODE);
-        setCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
+        const nextReact = getStarterReactCode(nextCode.react || DEFAULT_REACT_CODE);
+        const nextCss = getStarterCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
+
+        setReactCode(nextReact);
+        setCssCode(nextCss);
+
+        if (nextReact !== nextCode.react || nextCss !== nextCode.reactCss) {
+          await updateRoom(roomId, {
+            code: {
+              ...nextCode,
+              react: nextReact,
+              reactCss: nextCss,
+            },
+          });
+        }
       } catch (error) {
         toast.error(error.response?.data?.message || 'Unable to load room data.');
       }
     };
 
     loadRoom();
+  }, [roomId]);
+
+  useEffect(() => {
+    const loadSnapshots = async () => {
+      setIsSnapshotsLoading(true);
+      try {
+        const data = await getRoomSnapshots(roomId);
+        setSnapshots(data.snapshots || []);
+        setCurrentSnapshotId(data.headSnapshotId || null);
+      } catch (error) {
+        console.error('Failed to load React room snapshots', error);
+      } finally {
+        setIsSnapshotsLoading(false);
+      }
+    };
+
+    loadSnapshots();
   }, [roomId]);
 
   useEffect(() => {
@@ -796,6 +889,113 @@ const ReactStudioPage = () => {
     });
   };
 
+  const saveSnapshot = async () => {
+    const nextMessage = commitMessage.trim();
+
+    if (isSpectator) {
+      toast.error('Spectators can review history, but cannot create snapshots.');
+      return;
+    }
+
+    if (!nextMessage) {
+      toast.error('Write a commit message before saving a snapshot.');
+      return;
+    }
+
+    setIsSnapshotSaving(true);
+
+    try {
+      const payload = {
+        message: nextMessage,
+        authorName: username,
+        code: {
+          react: latestCodeRef.current.react,
+          reactCss: latestCodeRef.current.reactCss,
+        },
+      };
+
+      const data = await createRoomSnapshot(roomId, payload);
+      setSnapshots((current) => [data.snapshot, ...current]);
+      setCurrentSnapshotId(data.snapshot.snapshotId);
+      setCommitMessage('');
+      toast.success('Snapshot saved.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to save snapshot.');
+    } finally {
+      setIsSnapshotSaving(false);
+    }
+  };
+
+  const checkoutSnapshot = async (snapshot) => {
+    setIsCheckingOutSnapshot(true);
+
+    try {
+      const data = await checkoutRoomSnapshot(roomId, snapshot.snapshotId);
+      applyRoomCode(data.room.code || snapshot.code || {});
+      setCurrentSnapshotId(snapshot.snapshotId);
+
+      if (socketReactRef.current) {
+        socketReactRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code: data.room.code?.react || snapshot.code?.react || '',
+          editorType: 'react',
+        });
+      }
+
+      if (socketCssRef.current) {
+        socketCssRef.current.emit(ACTIONS.CODE_CHANGE, {
+          roomId,
+          code: data.room.code?.reactCss || snapshot.code?.reactCss || '',
+          editorType: 'react-css',
+        });
+      }
+
+      toast.success(`Checked out "${snapshot.message}".`);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to checkout snapshot.');
+    } finally {
+      setIsCheckingOutSnapshot(false);
+    }
+  };
+
+  const openInviteModal = () => {
+    if (!user?.email) {
+      toast.error('Sign in to send room invites.');
+      return;
+    }
+
+    if (isSpectator) {
+      toast.error('Spectators can view the room, but cannot send invites.');
+      return;
+    }
+
+    setIsInviteModalOpen(true);
+  };
+
+  const submitEmailInvite = async (event) => {
+    event.preventDefault();
+
+    const nextEmail = inviteEmail.trim().toLowerCase();
+
+    if (!nextEmail) {
+      toast.error('Enter an email address to invite.');
+      return;
+    }
+
+    setIsInviteSending(true);
+
+    try {
+      const data = await inviteUserToRoom(roomId, { email: nextEmail });
+      setInviteEmail('');
+      setIsInviteModalOpen(false);
+      toast.success(data.message || 'Invite sent successfully.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to send invite.');
+    } finally {
+      setIsInviteSending(false);
+    }
+  };
+
   const leaveRoom = () => {
     localStorage.removeItem(`reactCode_${roomId}`);
     localStorage.removeItem(`reactStudioCss_${roomId}`);
@@ -869,6 +1069,21 @@ const ReactStudioPage = () => {
 
   const visibleEditors = Object.values(collapseEditor).filter((collapsed) => !collapsed).length;
   const editorHeight = visibleEditors > 0 ? `${100 / visibleEditors}%` : '0';
+  const formatSnapshotTime = (timestamp) => {
+    const created = new Date(timestamp).getTime();
+    const diffMinutes = Math.max(1, Math.floor((Date.now() - created) / 60000));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    }
+
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
 
   return (
     <div className={`mainWrape ${isCollapsed ? 'collapsed' : ''}`}>
@@ -969,6 +1184,30 @@ const ReactStudioPage = () => {
       </aside>
 
       <div className="workspacePane">
+        <div className="editorTopbar">
+          <div className="editorTopbarMeta">
+            <p className="editorTopbarEyebrow">Collaborative React Workspace</p>
+            <h2>{roomId}</h2>
+          </div>
+
+          <div className="editorTopbarActions">
+            <button
+              type="button"
+              className="btn-outline editorTopbarBtn"
+              onClick={() => setIsHistoryOpen(true)}
+            >
+              <History size={16} /> History
+            </button>
+            <button
+              type="button"
+              className="btn-primary editorTopbarBtn editorInviteTopbarBtn"
+              onClick={openInviteModal}
+            >
+              <UserPlus size={16} /> Invite Email
+            </button>
+          </div>
+        </div>
+
         <div className="editorWrap">
           <div className="editorholder">
             {!collapseEditor.react && (
@@ -1073,6 +1312,114 @@ const ReactStudioPage = () => {
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
         />
+      )}
+
+      {isInviteModalOpen && <div className="dashboardModalBackdrop" onClick={() => setIsInviteModalOpen(false)} />}
+      {isInviteModalOpen && (
+        <div className="dashboardModal inviteRoomModal">
+          <div className="dashboardModalHead">
+            <div>
+              <p className="dashboardEyebrow">Room Access</p>
+              <h3>Invite By Email</h3>
+            </div>
+            <button type="button" className="dashboardIconBtn" onClick={() => setIsInviteModalOpen(false)}>×</button>
+          </div>
+
+          <form className="dashboardModalForm" onSubmit={submitEmailInvite}>
+            <label>
+              Account Email
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="teammate@example.com"
+                autoFocus
+              />
+            </label>
+
+            <p className="editorInviteHint">
+              If this email already has a Kodikos account, they will get a dashboard notification to join this room.
+            </p>
+
+            <button type="submit" className="btn-primary" disabled={isInviteSending}>
+              <UserPlus size={16} /> {isInviteSending ? 'Sending Invite...' : 'Send Invite'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {isHistoryOpen && <div className="historyDrawerBackdrop" onClick={() => setIsHistoryOpen(false)} />}
+      {isHistoryOpen && (
+        <aside className="historyDrawer">
+          <div className="historyDrawerHead">
+            <div>
+              <p className="snapshotPanelEyebrow">Version Control</p>
+              <h3>React Room History</h3>
+            </div>
+            <button type="button" className="dashboardIconBtn historyCloseBtn" onClick={() => setIsHistoryOpen(false)}>×</button>
+          </div>
+
+          <div className="snapshotComposer historyComposer">
+            <textarea
+              className="snapshotMessageInput"
+              value={commitMessage}
+              onChange={(event) => setCommitMessage(event.target.value)}
+              placeholder="Write a commit message for this snapshot..."
+              rows={3}
+              disabled={isSpectator || isSnapshotSaving}
+            />
+            <button
+              type="button"
+              className="btn-primary snapshotSaveBtn"
+              onClick={saveSnapshot}
+              disabled={isSpectator || isSnapshotSaving}
+            >
+              <Save size={16} /> {isSnapshotSaving ? 'Saving...' : 'Save Snapshot'}
+            </button>
+          </div>
+
+          <div className="historyTimeline">
+            {isSnapshotsLoading ? (
+              <div className="snapshotEmptyState">Loading history...</div>
+            ) : snapshots.length ? snapshots.map((snapshot, index) => (
+              <div key={snapshot.snapshotId} className="historyTimelineItem">
+                <button
+                  type="button"
+                  className={`historyTimelineDot ${currentSnapshotId === snapshot.snapshotId ? 'active' : ''}`}
+                  onClick={() => checkoutSnapshot(snapshot)}
+                >
+                  <span className="historyDotTooltip">
+                    <strong>{snapshot.message}</strong>
+                    <span>{snapshot.authorName} · {formatSnapshotTime(snapshot.createdAt)}</span>
+                  </span>
+                </button>
+                {index < snapshots.length - 1 ? <div className="historyTimelineConnector" /> : null}
+                <div className={`historyTimelineCard ${currentSnapshotId === snapshot.snapshotId ? 'active' : ''}`}>
+                  <div className="snapshotTreeTopline">
+                    <p>{snapshot.message}</p>
+                    <span>{formatSnapshotTime(snapshot.createdAt)}</span>
+                  </div>
+                  <div className="snapshotTreeMeta">
+                    <span>{snapshot.authorName}</span>
+                    {currentSnapshotId === snapshot.snapshotId ? <strong>Current</strong> : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="snapshotCheckoutBtn"
+                    onClick={() => checkoutSnapshot(snapshot)}
+                    disabled={isCheckingOutSnapshot}
+                  >
+                    <RotateCcw size={14} /> Checkout
+                  </button>
+                </div>
+              </div>
+            )) : (
+              <div className="snapshotEmptyState">
+                Save your first snapshot to build a Git-like room history.
+              </div>
+            )}
+          </div>
+        </aside>
       )}
     </div>
   );
