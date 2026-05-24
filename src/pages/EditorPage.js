@@ -767,11 +767,6 @@ const EditorPage = () => {
                 <MessageSquare size={16} /> Chat
               </button>
             )}
-            {!isCollapsed && (
-              <button className="btn-primary" onClick={openInviteModal}>
-                <UserPlus size={16} /> Invite Email
-              </button>
-            )}
             {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Invite</button>}
             <button className={`btn-primary LeaveBtn ${isCollapsed ? 'collapsed-btn' : ''}`} onClick={leaveRoom}><LogOut size={16} /> {!isCollapsed && 'Leave'}</button>
           </div>
@@ -796,6 +791,30 @@ const EditorPage = () => {
 
       {/* Editors + Preview */}
       <div className="workspacePane">
+        <div className="editorTopbar">
+          <div className="editorTopbarMeta">
+            <p className="editorTopbarEyebrow">Collaborative Workspace</p>
+            <h2>{roomId}</h2>
+          </div>
+
+          <div className="editorTopbarActions">
+            <button
+              type="button"
+              className="btn-outline editorTopbarBtn"
+              onClick={() => setIsHistoryOpen(true)}
+            >
+              <History size={16} /> History
+            </button>
+            <button
+              type="button"
+              className="btn-primary editorTopbarBtn editorInviteTopbarBtn"
+              onClick={openInviteModal}
+            >
+              <UserPlus size={16} /> Invite Email
+            </button>
+          </div>
+        </div>
+
         <div className="editorWrap">
           <div className='editorholder'>
             {/* JavaScript Editor */}
@@ -898,14 +917,6 @@ const EditorPage = () => {
                 </button>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => setIsHistoryOpen(true)}
-                  style={{ width: 'auto', padding: '6px 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <History size={14} /> History
-                </button>
                 <button
                   className="btn-primary"
                   onClick={runCode}

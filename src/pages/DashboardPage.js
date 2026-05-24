@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Clock3, Code2, FolderOpen, MoreHorizontal, Plus, Search, Settings, Share2, Sparkles, Star, Trash2, LogOut, PencilLine } from 'lucide-react';
+import { Bell, Clock3, Code2, Compass, FolderOpen, MoreHorizontal, Plus, Search, Settings, Share2, Sparkles, Star, Trash2, LogOut, PencilLine, UploadCloud } from 'lucide-react';
 import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -8,9 +8,11 @@ import { deleteRoom as deleteRoomRequest, getUserRooms, updateRoom } from '../ut
 import { updatePassword as updatePasswordRequest } from '../utils/accountApi';
 import { getRoomAnalytics } from '../utils/analyticsApi';
 import { getNotifications, markNotificationsRead } from '../utils/notificationApi';
+import { updateCommunityProject } from '../utils/communityApi';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Sparkles },
+  { id: 'community', label: 'Community', icon: Compass },
   { id: 'recent', label: 'Recent Rooms', icon: Clock3 },
   { id: 'favorites', label: 'Favorites', icon: Star },
   { id: 'shared', label: 'Shared', icon: Share2 },
@@ -46,6 +48,9 @@ const DashboardPage = () => {
   const [editingRoom, setEditingRoom] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [publishingRoom, setPublishingRoom] = useState(null);
+  const [publishForm, setPublishForm] = useState({ description: '', tags: '' });
+  const [isPublishing, setIsPublishing] = useState(false);
   const [typedGreeting, setTypedGreeting] = useState('');
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
@@ -168,6 +173,7 @@ const DashboardPage = () => {
 
   const favoriteCount = rooms.filter((room) => room.isStarred).length;
   const sharedCount = rooms.filter((room) => room.privacy === 'shared').length;
+  const publishedCount = rooms.filter((room) => room.community?.isPublished).length;
 
   const openRoom = async (room) => {
     const destination = room.language === 'react' ? `/react-studio/${room.roomId}` : `/editor/${room.roomId}`;
@@ -245,6 +251,69 @@ const DashboardPage = () => {
       toast.success('Project deleted.');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Unable to delete project.');
+    }
+  };
+
+  const openPublishModal = (room) => {
+    setPublishingRoom(room);
+    setPublishForm({
+      description: room.community?.description || '',
+      tags: (room.community?.tags || []).join(', '),
+    });
+  };
+
+  const submitPublishUpdate = async (event) => {
+    event.preventDefault();
+
+    if (!publishingRoom) {
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      const data = await updateCommunityProject(publishingRoom.roomId, {
+        isPublished: true,
+        description: publishForm.description,
+        tags: publishForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      });
+
+      setRooms((current) => current.map((room) => (
+        room.roomId === publishingRoom.roomId ? data.room : room
+      )));
+      toast.success(data.message || 'Community settings updated.');
+      setPublishingRoom(null);
+      setPublishForm({ description: '', tags: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to update community project.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  const unpublishProject = async () => {
+    if (!publishingRoom) {
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const data = await updateCommunityProject(publishingRoom.roomId, {
+        isPublished: false,
+        description: publishForm.description,
+        tags: publishForm.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      });
+
+      setRooms((current) => current.map((room) => (
+        room.roomId === publishingRoom.roomId ? data.room : room
+      )));
+      toast.success(data.message || 'Project unpublished.');
+      setPublishingRoom(null);
+      setPublishForm({ description: '', tags: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to unpublish project.');
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -326,6 +395,8 @@ const DashboardPage = () => {
             const Icon = item.icon;
             const count = item.id === 'favorites'
               ? favoriteCount
+              : item.id === 'community'
+                ? publishedCount
               : item.id === 'shared'
                 ? sharedCount
                 : item.id === 'recent'
@@ -337,7 +408,13 @@ const DashboardPage = () => {
                 key={item.id}
                 type="button"
                 className={`dashboardNavItem ${activeSection === item.id ? 'active' : ''}`}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  if (item.id === 'community') {
+                    navigate('/community');
+                    return;
+                  }
+                  setActiveSection(item.id);
+                }}
               >
                 <span className="dashboardNavLabel">
                   <Icon size={17} />
@@ -572,6 +649,9 @@ const DashboardPage = () => {
                     </div>
 
                     <div className="roomCardFooter">
+                      <button type="button" className="dashboardMiniBtn" onClick={() => openPublishModal(room)}>
+                        <UploadCloud size={16} /> {room.community?.isPublished ? 'Update Publish' : 'Publish'}
+                      </button>
                       <button type="button" className="dashboardMiniBtn" onClick={() => toggleStar(room)}>
                         <Star size={16} fill={room.isStarred ? 'currentColor' : 'none'} /> {room.isStarred ? 'Starred' : 'Star'}
                       </button>
@@ -601,6 +681,7 @@ const DashboardPage = () => {
       </div>
 
       {editingRoom && <div className="dashboardModalBackdrop" onClick={() => setEditingRoom(null)} />}
+      {publishingRoom && <div className="dashboardModalBackdrop" onClick={() => setPublishingRoom(null)} />}
 
       {editingRoom && (
         <div className="dashboardModal renameModal">
@@ -624,6 +705,54 @@ const DashboardPage = () => {
             <button type="submit" className="btn-primary" disabled={isSaving}>
               <PencilLine size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
+          </form>
+        </div>
+      )}
+
+      {publishingRoom && (
+        <div className="dashboardModal publishModal">
+          <div className="dashboardModalHead">
+            <div>
+              <p className="dashboardEyebrow">Community</p>
+              <h3>{publishingRoom.community?.isPublished ? 'Update Published Project' : 'Publish Project'}</h3>
+            </div>
+            <button type="button" className="dashboardIconBtn" onClick={() => setPublishingRoom(null)}>×</button>
+          </div>
+
+          <form className="dashboardModalForm" onSubmit={submitPublishUpdate}>
+            <label>
+              Description
+              <textarea
+                className="dashboardModalTextarea"
+                value={publishForm.description}
+                onChange={(event) => setPublishForm((current) => ({ ...current, description: event.target.value }))}
+                placeholder="Tell the community what makes this project interesting."
+                rows={4}
+              />
+            </label>
+
+            <label>
+              Tags
+              <input
+                type="text"
+                value={publishForm.tags}
+                onChange={(event) => setPublishForm((current) => ({ ...current, tags: event.target.value }))}
+                placeholder="portfolio, animation, ui"
+              />
+            </label>
+
+            <button type="submit" className="btn-primary" disabled={isPublishing}>
+              <UploadCloud size={16} /> {isPublishing
+                ? 'Saving...'
+                : publishingRoom.community?.isPublished
+                  ? 'Save Community Details'
+                  : 'Publish To Community'}
+            </button>
+            {publishingRoom.community?.isPublished ? (
+              <button type="button" className="btn-outline dashboardDangerOutline" onClick={unpublishProject} disabled={isPublishing}>
+                Unpublish
+              </button>
+            ) : null}
           </form>
         </div>
       )}

@@ -44,8 +44,48 @@ const formatRoom = (room) => ({
   openCount: room.openCount,
   editCount: room.editCount,
   lastOpenedAt: room.lastOpenedAt,
+  community: {
+    isPublished: Boolean(room.community?.isPublished),
+    description: room.community?.description || '',
+    tags: room.community?.tags || [],
+    publishedAt: room.community?.publishedAt || null,
+    viewCount: room.community?.viewCount || 0,
+    likeCount: room.community?.likedBy?.length || 0,
+    likedBy: room.community?.likedBy || [],
+  },
   createdAt: room.createdAt,
   updatedAt: room.updatedAt,
+});
+
+const formatCommunityRoom = (room, currentUserId = null) => ({
+  ...formatRoom(room),
+  ownerProfile: {
+    id: room.owner?._id || room.owner,
+    name: room.owner?.name || room.collaborators?.[0]?.name || 'Kodikos Creator',
+    email: room.owner?.email || '',
+  },
+  community: {
+    isPublished: Boolean(room.community?.isPublished),
+    description: room.community?.description || '',
+    tags: room.community?.tags || [],
+    publishedAt: room.community?.publishedAt || null,
+    viewCount: room.community?.viewCount || 0,
+    likeCount: room.community?.likedBy?.length || 0,
+    isLikedByViewer: currentUserId
+      ? room.community?.likedBy?.some((userId) => userId.toString() === currentUserId.toString())
+      : false,
+  },
+  communityComments: [...(room.communityComments || [])]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map((comment) => ({
+      commentId: comment.commentId,
+      user: comment.user,
+      authorName: comment.authorName,
+      authorEmail: comment.authorEmail,
+      kind: comment.kind,
+      body: comment.body,
+      createdAt: comment.createdAt,
+    })),
 });
 
 const formatSnapshot = (snapshot, room) => ({
@@ -334,6 +374,264 @@ const updateRoom = async (req, res) => {
   }
 };
 
+const updateRoomCommunity = async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId });
+
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found.' });
+    }
+
+    if (room.owner.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ message: 'Only the room owner can publish this room.' });
+    }
+
+    const {
+      isPublished,
+      description = '',
+      tags = [],
+    } = req.body || {};
+
+    const normalizedTags = Array.isArray(tags)
+      ? [...new Set(tags.map((tag) => `${tag}`.trim().toLowerCase()).filter(Boolean))].slice(0, 6)
+      : [];
+
+    if (!room.community) {
+      room.community = {
+        isPublished: false,
+        description: '',
+        tags: [],
+        publishedAt: null,
+        viewCount: 0,
+        likedBy: [],
+      };
+    }
+
+    if (typeof isPublished === 'boolean') {
+      room.community.isPublished = isPublished;
+      room.community.publishedAt = isPublished
+        ? room.community.publishedAt || new Date()
+        : null;
+    }
+
+    room.community.description = typeof description === 'string' ? description.trim() : room.community.description;
+    room.community.tags = normalizedTags;
+
+    if (room.community.isPublished) {
+      room.privacy = 'shared';
+    }
+
+    await room.save();
+
+    return res.status(200).json({
+      message: room.community.isPublished
+        ? 'Project published to the community.'
+        : 'Project removed from the community.',
+      room: formatRoom(room),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to update community settings.', details: error.message });
+  }
+};
+
+const getCommunityRooms = async (req, res) => {
+  try {
+    const query = `${req.query.q || ''}`.trim();
+    const filter = {
+      'community.isPublished': true,
+    };
+
+    if (query) {
+      const regex = new RegExp(query, 'i');
+      filter.$or = [
+        { title: regex },
+        { 'community.description': regex },
+        { 'community.tags': regex },
+      ];
+    }
+
+    const rooms = await Room.find(filter)
+      .populate('owner', 'name email')
+      .sort({ 'community.publishedAt': -1, updatedAt: -1 })
+      .limit(48);
+
+    const currentUserId = getRequestUserId(req);
+
+    return res.status(200).json({
+      projects: rooms.map((room) => formatCommunityRoom(room, currentUserId)),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to fetch community projects.', details: error.message });
+  }
+};
+
+const getCommunityRoomDetail = async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId, 'community.isPublished': true })
+      .populate('owner', 'name email');
+
+    if (!room) {
+      return res.status(404).json({ message: 'Published project not found.' });
+    }
+
+    room.community.viewCount = (room.community?.viewCount || 0) + 1;
+    await room.save();
+
+    return res.status(200).json({
+      project: formatCommunityRoom(room, getRequestUserId(req)),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to fetch community project.', details: error.message });
+  }
+};
+
+const trackCommunityView = async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId, 'community.isPublished': true })
+      .populate('owner', 'name email');
+
+    if (!room) {
+      return res.status(404).json({ message: 'Published project not found.' });
+    }
+
+    room.community.viewCount = (room.community?.viewCount || 0) + 1;
+    await room.save();
+
+    return res.status(200).json({
+      message: 'Project view tracked.',
+      project: formatCommunityRoom(room, getRequestUserId(req)),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to track project view.', details: error.message });
+  }
+};
+
+const addCommunityComment = async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId, 'community.isPublished': true })
+      .populate('owner', 'name email');
+
+    if (!room) {
+      return res.status(404).json({ message: 'Published project not found.' });
+    }
+
+    const body = req.body?.body?.trim();
+    const kind = req.body?.kind === 'question' ? 'question' : 'comment';
+
+    if (!body) {
+      return res.status(400).json({ message: 'Write a comment before posting.' });
+    }
+
+    room.communityComments.push({
+      commentId: uuidV4(),
+      user: req.user._id,
+      authorName: req.user.name,
+      authorEmail: req.user.email,
+      kind,
+      body,
+    });
+
+    await room.save();
+
+    return res.status(201).json({
+      message: kind === 'question' ? 'Question posted.' : 'Comment posted.',
+      project: formatCommunityRoom(room, req.user._id),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to post comment.', details: error.message });
+  }
+};
+
+const remixCommunityProject = async (req, res) => {
+  try {
+    const sourceRoom = await Room.findOne({ roomId: req.params.roomId, 'community.isPublished': true });
+
+    if (!sourceRoom) {
+      return res.status(404).json({ message: 'Published project not found.' });
+    }
+
+    const clonedTitle = `${sourceRoom.title} Remix`;
+    const clonedCode = {
+      javascript: sourceRoom.code?.javascript || '',
+      html: sourceRoom.code?.html || '',
+      css: sourceRoom.code?.css || '',
+      react: sourceRoom.code?.react || '',
+      reactCss: sourceRoom.code?.reactCss || '',
+    };
+
+    const remixedRoom = await Room.create({
+      roomId: uuidV4(),
+      title: clonedTitle,
+      owner: req.user._id,
+      collaborators: [{
+        user: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+      }],
+      language: sourceRoom.language,
+      privacy: 'private',
+      template: sourceRoom.template,
+      code: clonedCode,
+      thumbnail: sourceRoom.thumbnail || '',
+      snapshots: [],
+      community: {
+        isPublished: false,
+        description: '',
+        tags: [],
+        publishedAt: null,
+        viewCount: 0,
+        likedBy: [],
+      },
+      communityComments: [],
+    });
+
+    return res.status(201).json({
+      message: 'Remix created successfully.',
+      room: formatRoom(remixedRoom),
+      sourceRoomId: sourceRoom.roomId,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to remix project.', details: error.message });
+  }
+};
+
+const toggleCommunityLike = async (req, res) => {
+  try {
+    const room = await Room.findOne({ roomId: req.params.roomId, 'community.isPublished': true })
+      .populate('owner', 'name email');
+
+    if (!room) {
+      return res.status(404).json({ message: 'Published project not found.' });
+    }
+
+    if (!Array.isArray(room.community?.likedBy)) {
+      room.community.likedBy = [];
+    }
+
+    const existingIndex = room.community.likedBy.findIndex(
+      (userId) => userId.toString() === req.user._id.toString()
+    );
+
+    let isLikedByViewer = false;
+
+    if (existingIndex >= 0) {
+      room.community.likedBy.splice(existingIndex, 1);
+    } else {
+      room.community.likedBy.push(req.user._id);
+      isLikedByViewer = true;
+    }
+
+    await room.save();
+
+    return res.status(200).json({
+      message: isLikedByViewer ? 'Project liked.' : 'Project unliked.',
+      project: formatCommunityRoom(room, req.user._id),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to update project like.', details: error.message });
+  }
+};
+
 const inviteUserToRoom = async (req, res) => {
   try {
     const room = await Room.findOne({ roomId: req.params.roomId });
@@ -599,8 +897,15 @@ module.exports = {
   createRoom,
   getUserRooms,
   getUserRoomAnalytics,
+  getCommunityRooms,
+  getCommunityRoomDetail,
   getRoomById,
   updateRoom,
+  updateRoomCommunity,
+  trackCommunityView,
+  addCommunityComment,
+  remixCommunityProject,
+  toggleCommunityLike,
   inviteUserToRoom,
   deleteRoom,
   listRoomSnapshots,

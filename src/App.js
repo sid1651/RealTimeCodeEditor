@@ -8,6 +8,9 @@ import Signlog from './pages/signlog';
 import Signup from './pages/signup';
 import ReactStudioPage from './pages/ReactStudioPage';
 import DashboardPage from './pages/DashboardPage';
+import CommunityPage from './pages/CommunityPage';
+import CommunityProjectPage from './pages/CommunityProjectPage';
+import CommunityEmbedPage from './pages/CommunityEmbedPage';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './context/AuthContext';
 
@@ -36,6 +39,9 @@ function App() {
           <Route path="/" element={<DashboardPage />} ></Route>
           <Route path="/landing" element ={<LandingPage/>}></Route>
           <Route path="/dashboard" element={<DashboardPage />} ></Route>
+          <Route path="/community" element={<CommunityPage />} ></Route>
+          <Route path="/community/:roomId" element={<CommunityProjectPage />} ></Route>
+          <Route path="/embed/:roomId" element={<CommunityEmbedPage />} ></Route>
           <Route path="/home" element={<Home />} ></Route>
           <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
           <Route path="/editor/:roomId" element={<EditorPage />} ></Route>

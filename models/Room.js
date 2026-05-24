@@ -62,6 +62,82 @@ const snapshotSchema = new mongoose.Schema(
   }
 );
 
+const communitySchema = new mongoose.Schema(
+  {
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 280,
+    },
+    tags: {
+      type: [String],
+      default: [],
+    },
+    publishedAt: {
+      type: Date,
+      default: null,
+    },
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+    likedBy: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
+const communityCommentSchema = new mongoose.Schema(
+  {
+    commentId: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    authorName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 80,
+    },
+    authorEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: '',
+    },
+    kind: {
+      type: String,
+      enum: ['comment', 'question'],
+      default: 'comment',
+    },
+    body: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+  },
+  {
+    _id: false,
+    timestamps: { createdAt: true, updatedAt: false },
+  }
+);
+
 const roomSchema = new mongoose.Schema(
   {
     roomId: {
@@ -136,6 +212,21 @@ const roomSchema = new mongoose.Schema(
     },
     snapshots: {
       type: [snapshotSchema],
+      default: [],
+    },
+    community: {
+      type: communitySchema,
+      default: () => ({
+        isPublished: false,
+        description: '',
+        tags: [],
+        publishedAt: null,
+        viewCount: 0,
+        likedBy: [],
+      }),
+    },
+    communityComments: {
+      type: [communityCommentSchema],
       default: [],
     },
   },
