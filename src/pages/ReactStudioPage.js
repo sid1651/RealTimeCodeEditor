@@ -12,76 +12,351 @@ import { useAuth } from '../context/AuthContext';
 import { getRoomById, updateRoom } from '../utils/roomApi';
 
 const DEFAULT_REACT_CODE = `function App() {
-  const [count, setCount] = useState(0);
+  const [loveCount, setLoveCount] = useState(128);
+  const features = [
+    "Real-time editing with your team",
+    "Fast JSX and CSS experiments",
+    "A workspace that keeps your ideas together"
+  ];
 
   return (
-    <div className="demo-shell">
-      <div className="demo-card">
-        <p className="eyebrow">Collaborative React Studio</p>
-        <h1>Build React UI together.</h1>
-        <p className="lede">
-          Edit JSX and CSS with your team and watch the interface render live.
-        </p>
-        <button className="demo-button" onClick={() => setCount((value) => value + 1)}>
-          Shared component click count: {count}
-        </button>
-      </div>
-    </div>
+    <main className="love-shell">
+      <section className="love-hero">
+        <div className="love-copy">
+          <p className="love-kicker">Made with love in Kodikos</p>
+          <h1>Build together, ship together, and enjoy the process.</h1>
+          <p className="love-lede">
+            This project is made with love for collaborative builders who want a beautiful place to sketch, test, and refine React ideas live.
+          </p>
+
+          <div className="love-actions">
+            <button className="love-button" onClick={() => setLoveCount((value) => value + 1)}>
+              Send more love
+            </button>
+            <span className="love-pill">{loveCount} creators inspired</span>
+          </div>
+
+          <div className="love-metrics">
+            <article>
+              <strong>Live</strong>
+              <span>Edit React and CSS side by side with instant feedback.</span>
+            </article>
+            <article>
+              <strong>Shared</strong>
+              <span>Create together without losing the flow of the idea.</span>
+            </article>
+            <article>
+              <strong>Loved</strong>
+              <span>A starter page that feels crafted instead of empty.</span>
+            </article>
+          </div>
+        </div>
+
+        <aside className="love-panel">
+          <div className="panel-orbit panel-orbit-one"></div>
+          <div className="panel-orbit panel-orbit-two"></div>
+
+          <div className="panel-badge">Project starter</div>
+
+          <div className="panel-card">
+            <p className="panel-label">Why this exists</p>
+            <h2>A collaborative studio for ideas that deserve a nicer beginning.</h2>
+            <p className="panel-text">
+              Start with a thoughtful default, then remix every part of it into your own product, landing page, or experiment.
+            </p>
+          </div>
+
+          <div className="feature-list">
+            {features.map((item, index) => (
+              <div className="feature-tile" key={item}>
+                <span>0{index + 1}</span>
+                <div>
+                  <strong>{item}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </section>
+    </main>
   );
 }`;
 
-const DEFAULT_CSS_CODE = `.demo-shell {
+const DEFAULT_CSS_CODE = `:root {
+  --night: #07111a;
+  --navy: #10243a;
+  --rose: #ff7b72;
+  --peach: #ffb36b;
+  --cream: #fff7ef;
+  --mist: #c9d7e6;
+  --glass: rgba(9, 17, 27, 0.72);
+  --line: rgba(255, 255, 255, 0.1);
+  --shadow: 0 30px 90px rgba(0, 0, 0, 0.34);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.love-shell {
   min-height: 100vh;
+  padding: 28px;
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at top, rgba(34, 211, 238, 0.22), transparent 30%),
-    linear-gradient(160deg, #07111f 0%, #111827 52%, #030712 100%);
-  padding: 24px;
-  font-family: Inter, system-ui, sans-serif;
+    radial-gradient(circle at top left, rgba(255, 123, 114, 0.24), transparent 26%),
+    radial-gradient(circle at 80% 20%, rgba(255, 179, 107, 0.18), transparent 20%),
+    linear-gradient(145deg, var(--night) 0%, var(--navy) 55%, #050a11 100%);
+  color: var(--cream);
+  font-family: "Inter", "Segoe UI", sans-serif;
 }
 
-.demo-card {
-  width: min(540px, 100%);
-  padding: 32px;
-  border-radius: 28px;
-  color: #e5eefc;
-  background: rgba(15, 23, 42, 0.82);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.42);
+.love-hero {
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  gap: 26px;
+  align-items: center;
 }
 
-.eyebrow {
-  margin: 0 0 10px;
-  color: #67e8f9;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
+.love-copy,
+.love-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 34px;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
 }
 
-.demo-card h1 {
+.love-copy {
+  padding: 42px;
+}
+
+.love-copy::after,
+.love-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%);
+  pointer-events: none;
+}
+
+.love-kicker,
+.panel-label,
+.panel-badge {
   margin: 0;
-  font-size: clamp(2rem, 6vw, 3rem);
-  line-height: 1.05;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
-.lede {
-  margin: 14px 0 22px;
-  color: #94a3b8;
-  line-height: 1.65;
+.love-kicker {
+  color: #ffc9b6;
 }
 
-.demo-button {
+.love-copy h1 {
+  margin: 16px 0 0;
+  max-width: 11ch;
+  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;
+  font-size: clamp(3rem, 7vw, 5.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+}
+
+.love-lede {
+  max-width: 35rem;
+  margin: 20px 0 0;
+  color: var(--mist);
+  font-size: 1.06rem;
+  line-height: 1.8;
+}
+
+.love-actions {
+  margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.love-button {
   border: none;
   border-radius: 999px;
-  padding: 12px 18px;
-  background: linear-gradient(135deg, #22d3ee, #6366f1);
-  color: white;
-  font-size: 0.96rem;
-  font-weight: 700;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, var(--rose), var(--peach));
+  color: #24130f;
+  font-size: 0.98rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 14px 30px rgba(34, 211, 238, 0.22);
+  box-shadow: 0 18px 40px rgba(255, 123, 114, 0.28);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.love-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 44px rgba(255, 123, 114, 0.34);
+}
+
+.love-pill {
+  padding: 10px 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffe7d1;
+  font-weight: 700;
+}
+
+.love-metrics {
+  margin-top: 30px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.love-metrics article,
+.feature-tile,
+.panel-card {
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.love-metrics article {
+  padding: 18px;
+}
+
+.love-metrics strong {
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.love-metrics span {
+  display: block;
+  margin-top: 10px;
+  color: var(--mist);
+  line-height: 1.5;
+}
+
+.love-panel {
+  min-height: 640px;
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(13, 23, 35, 0.96), rgba(8, 13, 21, 0.92));
+}
+
+.panel-orbit {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(6px);
+}
+
+.panel-orbit-one {
+  top: 40px;
+  right: 36px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(255, 123, 114, 0.35), transparent 70%);
+}
+
+.panel-orbit-two {
+  bottom: 60px;
+  left: 12px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255, 179, 107, 0.22), transparent 72%);
+}
+
+.panel-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffd8c8;
+}
+
+.panel-card {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  padding: 24px;
+}
+
+.panel-label {
+  color: #ffcfb9;
+}
+
+.panel-card h2 {
+  margin: 14px 0 0;
+  font-size: 2rem;
+  line-height: 1.1;
+  color: var(--cream);
+}
+
+.panel-text {
+  margin: 14px 0 0;
+  color: var(--mist);
+  line-height: 1.7;
+}
+
+.feature-list {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.feature-tile {
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.feature-tile span {
+  display: inline-flex;
+  min-width: 40px;
+  color: #ffc8ae;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.feature-tile strong {
+  display: block;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .love-shell {
+    padding: 18px;
+  }
+
+  .love-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .love-copy {
+    padding: 28px;
+  }
+
+  .love-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .love-panel {
+    min-height: auto;
+  }
 }`;
 
 const normalizeReactSource = (source) => {
