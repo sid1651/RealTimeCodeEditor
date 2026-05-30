@@ -1,14 +1,29 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { sendVerificationOtpEmail } = require('../utils/emailService');
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 
 const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
   email: user.email,
   phone: user.phone || '',
+  emailVerified: Boolean(user.emailVerified),
   createdAt: user.createdAt,
 });
+
+const createOtp = () => `${crypto.randomInt(100000, 1000000)}`;
+const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
+
+const applyVerificationOtp = (user, otp) => {
+  user.verificationOtpHash = hashOtp(otp);
+  user.verificationOtpExpiresAt = new Date(Date.now() + OTP_TTL_MS);
+  user.verificationOtpSentAt = new Date();
+};
 
 const registerUser = async (req, res) => {
   try {
@@ -22,21 +37,39 @@ const registerUser = async (req, res) => {
     const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
+      if (!existingUser.emailVerified) {
+        return res.status(409).json({
+          message: 'This email is already registered but not verified yet. Please verify it with the OTP.',
+          requiresVerification: true,
+          email: normalizedEmail,
+        });
+      }
+
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const user = await User.create({
+    const otp = createOtp();
+    const user = new User({
       name: name.trim(),
       email: normalizedEmail,
       phone: phone.trim(),
       password: hashedPassword,
+      emailVerified: false,
     });
+    applyVerificationOtp(user, otp);
+
+    await sendVerificationOtpEmail({
+      to: normalizedEmail,
+      name: user.name,
+      otp,
+    });
+    await user.save();
 
     return res.status(201).json({
-      message: 'Account created successfully.',
-      token: generateToken(user._id.toString()),
-      user: sanitizeUser(user),
+      message: 'Verification OTP sent to your email.',
+      requiresVerification: true,
+      email: normalizedEmail,
     });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to register user.', details: error.message });
@@ -58,6 +91,14 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email with the OTP before logging in.',
+        requiresVerification: true,
+        email: normalizedEmail,
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
@@ -71,6 +112,104 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to log in.', details: error.message });
+  }
+};
+
+const verifyRegistrationOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+password +verificationOtpHash');
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found for this email.' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(200).json({
+        message: 'Email is already verified.',
+        token: generateToken(user._id.toString()),
+        user: sanitizeUser(user),
+      });
+    }
+
+    if (!user.verificationOtpHash || !user.verificationOtpExpiresAt) {
+      return res.status(400).json({ message: 'No active OTP found. Please request a new one.' });
+    }
+
+    if (user.verificationOtpExpiresAt.getTime() < Date.now()) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    const otpHash = hashOtp(String(otp).trim());
+    if (otpHash !== user.verificationOtpHash) {
+      return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+
+    user.emailVerified = true;
+    user.verificationOtpHash = null;
+    user.verificationOtpExpiresAt = null;
+    user.verificationOtpSentAt = null;
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Email verified successfully.',
+      token: generateToken(user._id.toString()),
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to verify OTP.', details: error.message });
+  }
+};
+
+const resendRegistrationOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+verificationOtpHash');
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found for this email.' });
+    }
+
+    if (user.emailVerified) {
+      return res.status(400).json({ message: 'This account is already verified. Please sign in.' });
+    }
+
+    if (
+      user.verificationOtpSentAt &&
+      Date.now() - user.verificationOtpSentAt.getTime() < OTP_RESEND_COOLDOWN_MS
+    ) {
+      return res.status(429).json({ message: 'Please wait a minute before requesting a new OTP.' });
+    }
+
+    const otp = createOtp();
+    applyVerificationOtp(user, otp);
+
+    await sendVerificationOtpEmail({
+      to: normalizedEmail,
+      name: user.name,
+      otp,
+    });
+    await user.save();
+
+    return res.status(200).json({
+      message: 'A new OTP has been sent to your email.',
+      requiresVerification: true,
+      email: normalizedEmail,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to resend OTP.', details: error.message });
   }
 };
 
@@ -150,6 +289,8 @@ const updatePassword = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  verifyRegistrationOtp,
+  resendRegistrationOtp,
   getCurrentUser,
   updateCurrentUser,
   updatePassword,

@@ -402,8 +402,13 @@ function setupNamespace(namespace) {
       emitJoinRequest(roomId);
     });
 
-    socket.on('send-message', ({ roomId, message, username, time }) => {
-      socket.in(roomId).emit('receive-message', { message, username, time });
+    socket.on('send-message', (payload = {}) => {
+      if (!payload.roomId) {
+        return;
+      }
+
+      const { roomId, ...messagePayload } = payload;
+      socket.in(roomId).emit('receive-message', messagePayload);
     });
 
     socket.on('code-output', ({ roomId, output, username }) => {

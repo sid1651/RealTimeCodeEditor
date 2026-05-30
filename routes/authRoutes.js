@@ -2,6 +2,8 @@ const express = require('express');
 const {
   registerUser,
   loginUser,
+  verifyRegistrationOtp,
+  resendRegistrationOtp,
   getCurrentUser,
   updateCurrentUser,
   updatePassword,
@@ -12,6 +14,8 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/verify-registration-otp', verifyRegistrationOtp);
+router.post('/resend-registration-otp', resendRegistrationOtp);
 router.get('/me', protect, getCurrentUser);
 router.put('/me', protect, updateCurrentUser);
 router.put('/password', protect, updatePassword);

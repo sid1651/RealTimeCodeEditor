@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { backend } from "../socket";
@@ -7,12 +7,18 @@ import { useAuth } from "../context/AuthContext";
 
 function Signup() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
         password: '',
     });
+    const [verificationOtp, setVerificationOtp] = useState('');
+    const [pendingVerificationEmail, setPendingVerificationEmail] = useState(
+        location.state?.email || ''
+    );
+    const [isOtpStep, setIsOtpStep] = useState(Boolean(location.state?.needsVerification));
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
@@ -23,7 +29,7 @@ function Signup() {
         }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
 
         if (!formData.fullname.trim() || !formData.email.trim() || !formData.password.trim()) {
@@ -39,19 +45,71 @@ function Signup() {
                 password: formData.password,
             });
 
-            login({
-                token: data.token,
-                user: data.user,
-            });
-            toast.success('Account created successfully.');
-            navigate('/dashboard');
+            setPendingVerificationEmail(data.email || formData.email.trim().toLowerCase());
+            setIsOtpStep(true);
+            toast.success('OTP sent to your email.');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Unable to create account.');
+            const responseData = error.response?.data;
+
+            if (responseData?.requiresVerification) {
+                setPendingVerificationEmail(responseData.email || formData.email.trim().toLowerCase());
+                setIsOtpStep(true);
+            }
+
+            toast.error(responseData?.message || 'Unable to create account.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+
+        if (!pendingVerificationEmail || !verificationOtp.trim()) {
+            toast.error('Enter the OTP sent to your email.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { data } = await axios.post(`${backend}/api/auth/verify-registration-otp`, {
+                email: pendingVerificationEmail,
+                otp: verificationOtp.trim(),
+            });
+
+            login({
+                token: data.token,
+                user: data.user,
+            });
+            toast.success('Email verified successfully.');
+            navigate('/dashboard');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Unable to verify OTP.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        if (!pendingVerificationEmail) {
+            toast.error('Register with your email first.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { data } = await axios.post(`${backend}/api/auth/resend-registration-otp`, {
+                email: pendingVerificationEmail,
+            });
+
+            setPendingVerificationEmail(data.email || pendingVerificationEmail);
+            toast.success('A new OTP has been sent.');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Unable to resend OTP.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <div className="signup-root">
@@ -75,67 +133,118 @@ function Signup() {
                 <section className="signup-panel-wrap">
                     <div className="signup-panel" role="region" aria-label="Authentication panel">
                         <div className="signup-panel-inner">
-                            <form className="signup-form" onSubmit={handleSubmit}>
-                                <h2 className="signup-form-title">Create your account</h2>
+                            {isOtpStep ? (
+                                <form className="signup-form" onSubmit={handleVerifyOtp}>
+                                    <h2 className="signup-form-title">Verify your email</h2>
 
-                                <label className="signup-field">
-                                    <span className="signup-label">Full Name</span>
-                                    <input
-                                        name="fullname"
-                                        type="text"
-                                        placeholder="John Doe"
-                                        value={formData.fullname}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </label>
+                                    <p className="signup-label" style={{ marginBottom: '0.75rem' }}>
+                                        Enter the OTP sent to {pendingVerificationEmail}.
+                                    </p>
 
-                                <label className="signup-field">
-                                    <span className="signup-label">Email</span>
-                                    <input
-                                        name="email"
-                                        type="email"
-                                        placeholder="you@company.com"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        required
-                                    />
-                                </label>
+                                    <label className="signup-field">
+                                        <span className="signup-label">OTP</span>
+                                        <input
+                                            name="otp"
+                                            type="text"
+                                            placeholder="123456"
+                                            value={verificationOtp}
+                                            onChange={(e) => setVerificationOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            required
+                                            inputMode="numeric"
+                                            maxLength={6}
+                                        />
+                                    </label>
 
-                                <label className="signup-field">
-                                    <span className="signup-label">Password</span>
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        required
-                                        minLength={6}
-                                    />
-                                </label>
+                                    <button type="submit" className="signup-submit-btn" disabled={isSubmitting}>
+                                        {isSubmitting ? 'Verifying...' : 'Verify OTP'}
+                                    </button>
 
-                                <button type="submit" className="signup-submit-btn" disabled={isSubmitting}>
-                                    {isSubmitting ? 'Creating Account...' : 'Sign Up'}
-                                </button>
-
-                                <div className="signup-divider"><span>or</span></div>
-
-                                <button type="button" className="signup-google-btn">
-                                    Sign up with Google
-                                </button>
-
-                                <div className="signup-switch">
-                                    <span>Already have an account?</span>
                                     <button
                                         type="button"
-                                        className="signup-link-btn"
-                                        onClick={() => navigate('/signin')}
+                                        className="signup-google-btn"
+                                        disabled={isSubmitting}
+                                        onClick={handleResendOtp}
                                     >
-                                        Sign In
+                                        Resend OTP
                                     </button>
-                                </div>
-                            </form>
+
+                                    <div className="signup-switch">
+                                        <span>Need to change your email?</span>
+                                        <button
+                                            type="button"
+                                            className="signup-link-btn"
+                                            onClick={() => {
+                                                setIsOtpStep(false);
+                                                setVerificationOtp('');
+                                            }}
+                                        >
+                                            Go back
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <form className="signup-form" onSubmit={handleRegister}>
+                                    <h2 className="signup-form-title">Create your account</h2>
+
+                                    <label className="signup-field">
+                                        <span className="signup-label">Full Name</span>
+                                        <input
+                                            name="fullname"
+                                            type="text"
+                                            placeholder="John Doe"
+                                            value={formData.fullname}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </label>
+
+                                    <label className="signup-field">
+                                        <span className="signup-label">Email</span>
+                                        <input
+                                            name="email"
+                                            type="email"
+                                            placeholder="you@company.com"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </label>
+
+                                    <label className="signup-field">
+                                        <span className="signup-label">Password</span>
+                                        <input
+                                            name="password"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            required
+                                            minLength={6}
+                                        />
+                                    </label>
+
+                                    <button type="submit" className="signup-submit-btn" disabled={isSubmitting}>
+                                        {isSubmitting ? 'Sending OTP...' : 'Sign Up'}
+                                    </button>
+
+                                    <div className="signup-divider"><span>or</span></div>
+
+                                    <button type="button" className="signup-google-btn">
+                                        Sign up with Google
+                                    </button>
+
+                                    <div className="signup-switch">
+                                        <span>Already have an account?</span>
+                                        <button
+                                            type="button"
+                                            className="signup-link-btn"
+                                            onClick={() => navigate('/signin')}
+                                        >
+                                            Sign In
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </section>

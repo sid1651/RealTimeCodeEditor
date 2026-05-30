@@ -44,7 +44,20 @@ const handleSubmit = async (e) => {
     toast.success('Signed in successfully.');
     navigate('/dashboard');
   } catch (error) {
-    toast.error(error.response?.data?.message || 'Unable to sign in.');
+    const responseData = error.response?.data;
+
+    if (responseData?.requiresVerification) {
+      toast.error(responseData.message || 'Please verify your email before signing in.');
+      navigate('/signup', {
+        state: {
+          email: responseData.email || formData.email.trim().toLowerCase(),
+          needsVerification: true,
+        },
+      });
+      return;
+    }
+
+    toast.error(responseData?.message || 'Unable to sign in.');
   } finally {
     setIsSubmitting(false);
   }

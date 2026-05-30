@@ -2518,7 +2518,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .roomGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 14px;
 }
 
@@ -2934,7 +2935,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .communityGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
   gap: 18px;
 }
 

@@ -28,6 +28,23 @@ const userSchema = new mongoose.Schema(
       minlength: 6,
       select: false,
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationOtpHash: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    verificationOtpExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    verificationOtpSentAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -125,11 +125,16 @@ cd kodikos
 
 2. Setup Environment Variables
 
-Create a .env file in the server directory with the following variables:
+Create a `.env` file with the following variables:
 
 PORT=5000
 MONGO_URI=your_mongo_connection_string
 JWT_SECRET=your_jwt_secret
+SMTP_USER=your_gmail_address
+SMTP_PASS=your_gmail_app_password
+SENDER_EMAIL=rushitgoyal@gmail.com
+
+The verification email sender is read from `SENDER_EMAIL`.
 
 3. Install dependencies
 Backend
