@@ -2028,7 +2028,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardPage {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 252px minmax(0, 1fr);
   background:
     radial-gradient(circle at top left, rgba(139, 92, 246, 0.14), transparent 22%),
     radial-gradient(circle at top right, rgba(6, 182, 212, 0.12), transparent 24%),
@@ -2039,13 +2039,13 @@ h1, h2, h3, h4, h5, h6 {
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 28px 20px;
+  padding: 24px 18px;
   background: rgba(8, 11, 20, 0.88);
   border-right: 1px solid rgba(148, 163, 184, 0.12);
   backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 22px;
 }
 
 .dashboardBrand {
@@ -2176,7 +2176,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardShell {
   min-width: 0;
-  padding: 24px;
+  width: min(100%, 1520px);
+  margin: 0 auto;
+  padding: clamp(18px, 2vw, 26px);
 }
 
 .dashboardTopbar {
@@ -2257,7 +2259,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardContent {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 18px;
 }
 
 .dashboardHero,
@@ -2273,9 +2275,10 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardHero {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 22px;
-  padding: 28px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 420px);
+  align-items: start;
+  gap: 18px;
+  padding: 24px;
 }
 
 .dashboardEyebrow {
@@ -2331,14 +2334,15 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardHero h1 {
   margin: 0;
-  font-size: clamp(2.1rem, 4vw, 3.4rem);
-  line-height: 1.02;
+  font-size: clamp(1.95rem, 3.3vw, 2.95rem);
+  line-height: 1.06;
 }
 
 .dashboardHero p {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   color: #94a3b8;
-  max-width: 640px;
+  max-width: 580px;
+  font-size: 0.96rem;
 }
 
 .dashboardActivityNote {
@@ -2409,17 +2413,18 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 22px;
+  margin-top: 18px;
 }
 
 .dashboardStatsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(110px, 1fr));
+  gap: 12px;
 }
 
 .dashboardStatCard {
-  padding: 18px;
+  min-height: 170px;
+  padding: 16px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -2433,8 +2438,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardStatCard strong {
   display: block;
-  margin-top: 10px;
-  font-size: 2rem;
+  margin-top: 8px;
+  font-size: 1.8rem;
 }
 
 .dashboardStatCard.cyan { box-shadow: 0 18px 50px rgba(6, 182, 212, 0.1); }
@@ -2442,7 +2447,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardStatCard.blue { box-shadow: 0 18px 50px rgba(59, 130, 246, 0.1); }
 
 .dashboardRoomsSection {
-  padding: 22px;
+  padding: 18px;
 }
 
 .dashboardPanelHead {
@@ -2518,15 +2523,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .roomGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   align-items: start;
-  gap: 14px;
+  gap: 16px;
 }
 
 .roomCard {
   position: relative;
   overflow: hidden;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 258px;
+  padding: 18px;
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.1);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62));
@@ -2552,8 +2560,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .roomCardHeader h4 {
   margin: 8px 0 0;
-  font-size: 0.98rem;
-  line-height: 1.35;
+  font-size: 1.02rem;
+  line-height: 1.4;
 }
 
 .roomLanguagePill {
@@ -2595,6 +2603,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 12px 0 14px;
   color: #94a3b8;
   font-size: 0.82rem;
+  line-height: 1.55;
 }
 
 .roomCardCollaborators {
@@ -2602,6 +2611,8 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-top: auto;
+  padding-top: 6px;
 }
 
 .collaboratorCluster {
@@ -2632,22 +2643,42 @@ h1, h2, h3, h4, h5, h6 {
 .roomCardFooter {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 16px;
+  min-width: 0;
 }
 
 .dashboardMiniBtn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
   gap: 6px;
-  padding: 8px 10px;
-  font-size: 0.82rem;
+  height: 42px;
+  min-width: 0;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.dashboardMiniBtn svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
 }
 
 .roomOpenBtn {
   width: auto;
+  flex: 0 0 auto;
   margin-left: auto;
+  min-width: 104px;
+  height: 48px;
+  padding-inline: 18px;
 }
 
 .emptyDashboardState,
@@ -3559,6 +3590,16 @@ h1, h2, h3, h4, h5, h6 {
 
   .settingsGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1440px) {
+  .dashboardShell {
+    width: 100%;
+  }
+
+  .dashboardHero {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
