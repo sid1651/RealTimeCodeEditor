@@ -2051,17 +2051,17 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardBrand {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border-radius: 22px;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .dashboardBrand img {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
 }
 
 .dashboardBrandEyebrow {
@@ -2074,7 +2074,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardBrand h2 {
   margin: 2px 0 0;
-  font-size: 1.32rem;
+  font-size: 1.22rem;
 }
 
 .dashboardNav {
@@ -2089,13 +2089,14 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 16px;
+  padding: 11px 13px;
+  border-radius: 15px;
   border: 1px solid transparent;
   background: transparent;
   color: #94a3b8;
   cursor: pointer;
   transition: all 0.22s ease;
+  font-size: 0.94rem;
 }
 
 .dashboardNavItem:hover,
@@ -2109,16 +2110,16 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardNavLabel {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .dashboardNavCount {
-  min-width: 28px;
+  min-width: 26px;
   padding: 2px 8px;
   border-radius: 999px;
   background: rgba(6, 182, 212, 0.14);
   color: #67e8f9;
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
@@ -2132,32 +2133,34 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardUserCard {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .dashboardUserAvatar {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #8b5cf6, #06b6d4);
   color: white;
   font-weight: 800;
+  font-size: 0.92rem;
 }
 
 .dashboardUserCard p {
   margin: 0;
   font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .dashboardUserCard span {
   color: #94a3b8;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 
 .dashboardLogout {
@@ -2166,12 +2169,14 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 12px;
+  min-height: 44px;
+  padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid rgba(239, 68, 68, 0.18);
   background: rgba(239, 68, 68, 0.08);
   color: #fca5a5;
   cursor: pointer;
+  font-size: 0.92rem;
 }
 
 .dashboardShell {
@@ -2186,16 +2191,17 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .dashboardSearch {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 18px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 15px;
+  border-radius: 17px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(148, 163, 184, 0.1);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
@@ -2207,7 +2213,7 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
   background: transparent;
   color: #f8fafc;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
 }
 
 .dashboardSearch input::placeholder {
@@ -2217,7 +2223,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardTopbarActions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .notificationTrigger {
@@ -2241,9 +2247,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dashboardIconBtn {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
   border: 1px solid rgba(148, 163, 184, 0.14);
   background: rgba(255, 255, 255, 0.04);
   color: #dbeafe;
@@ -2254,6 +2260,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardCreateBtn {
   width: auto;
+  min-height: 46px;
+  padding: 0 20px;
+  font-size: 0.96rem;
 }
 
 .dashboardContent {
@@ -2266,7 +2275,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardPanel,
 .dashboardRoomsSection,
 .dashboardModal {
-  border-radius: 28px;
+  border-radius: 26px;
   border: 1px solid rgba(148, 163, 184, 0.12);
   background: rgba(10, 16, 30, 0.7);
   backdrop-filter: blur(18px);
@@ -2284,7 +2293,7 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardEyebrow {
   margin: 0 0 8px;
   color: #67e8f9;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -2293,15 +2302,15 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardTerminalGreeting {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 14px;
+  gap: 9px;
+  margin-bottom: 12px;
+  padding: 9px 13px;
   border-radius: 999px;
   border: 1px solid rgba(103, 232, 249, 0.16);
   background: rgba(2, 6, 23, 0.72);
   color: #c7f9ff;
   font-family: "JetBrains Mono", monospace;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   letter-spacing: 0.04em;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
@@ -2334,7 +2343,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardHero h1 {
   margin: 0;
-  font-size: clamp(1.95rem, 3.3vw, 2.95rem);
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
   line-height: 1.06;
 }
 
@@ -2347,7 +2356,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboardActivityNote {
   color: #67e8f9 !important;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
 }
 
 .notificationPanel {
@@ -2412,8 +2421,15 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardHeroActions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   margin-top: 18px;
+}
+
+.dashboardHeroActions .btn-primary,
+.dashboardHeroActions .btn-outline {
+  min-height: 46px;
+  padding: 0 20px;
+  font-size: 0.96rem;
 }
 
 .dashboardStatsGrid {
@@ -2423,8 +2439,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dashboardStatCard {
-  min-height: 170px;
-  padding: 16px;
+  min-height: 156px;
+  padding: 15px;
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(148, 163, 184, 0.14);
@@ -2433,13 +2449,13 @@ h1, h2, h3, h4, h5, h6 {
 .dashboardStatCard span {
   display: block;
   color: #94a3b8;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 
 .dashboardStatCard strong {
   display: block;
   margin-top: 8px;
-  font-size: 1.8rem;
+  font-size: 1.65rem;
 }
 
 .dashboardStatCard.cyan { box-shadow: 0 18px 50px rgba(6, 182, 212, 0.1); }
@@ -2458,14 +2474,20 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 16px;
 }
 
+.dashboardPanelActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .dashboardPanelHead h3 {
   margin: 0;
-  font-size: 1.12rem;
+  font-size: 1.04rem;
 }
 
 .dashboardPanelHead span {
   color: #94a3b8;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
 }
 
 .roomCard:hover {
@@ -2523,9 +2545,70 @@ h1, h2, h3, h4, h5, h6 {
 
 .roomGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
   gap: 16px;
+}
+
+.roomCarouselControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.roomCarouselBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.roomCarouselBtn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.roomCarouselStatus {
+  min-width: 38px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.roomGridCarousel {
+  animation-duration: 0.28s;
+  animation-timing-function: ease;
+}
+
+.roomGridCarousel-down {
+  animation-name: roomCarouselSlideDown;
+}
+
+.roomGridCarousel-up {
+  animation-name: roomCarouselSlideUp;
+}
+
+@keyframes roomCarouselSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes roomCarouselSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .roomCard {
@@ -2533,8 +2616,8 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 258px;
-  padding: 18px;
+  min-height: 246px;
+  padding: 16px;
   border-radius: 20px;
   border: 1px solid rgba(148, 163, 184, 0.1);
   background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62));
@@ -2560,16 +2643,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .roomCardHeader h4 {
   margin: 8px 0 0;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   line-height: 1.4;
 }
 
 .roomLanguagePill {
   display: inline-flex;
   align-items: center;
-  padding: 0.3rem 0.68rem;
+  padding: 0.28rem 0.62rem;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 700;
 }
 
@@ -2593,8 +2676,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .roomMenuBtn {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
 }
@@ -2602,7 +2685,7 @@ h1, h2, h3, h4, h5, h6 {
 .roomMetaText {
   margin: 12px 0 14px;
   color: #94a3b8;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   line-height: 1.55;
 }
 
@@ -2621,8 +2704,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .collaboratorDot {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -2630,13 +2713,13 @@ h1, h2, h3, h4, h5, h6 {
   border: 2px solid rgba(15, 23, 42, 0.9);
   background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
 .roomLiveTag {
   color: #67e8f9;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
@@ -2655,10 +2738,10 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   flex: 1 1 0;
   gap: 6px;
-  height: 42px;
+  height: 40px;
   min-width: 0;
-  padding: 0 10px;
-  font-size: 0.78rem;
+  padding: 0 9px;
+  font-size: 0.74rem;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -2676,9 +2759,10 @@ h1, h2, h3, h4, h5, h6 {
   width: auto;
   flex: 0 0 auto;
   margin-left: auto;
-  min-width: 104px;
-  height: 48px;
-  padding-inline: 18px;
+  min-width: 98px;
+  height: 44px;
+  padding-inline: 16px;
+  font-size: 0.95rem;
 }
 
 .emptyDashboardState,

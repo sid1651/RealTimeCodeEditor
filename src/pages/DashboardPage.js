@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Clock3, Code2, Compass, FolderOpen, MoreHorizontal, Plus, Search, Settings, Share2, Sparkles, Star, Trash2, LogOut, PencilLine, UploadCloud } from 'lucide-react';
+import { Bell, ChevronDown, ChevronUp, Clock3, Code2, Compass, FolderOpen, MoreHorizontal, Plus, Search, Settings, Share2, Sparkles, Star, Trash2, LogOut, PencilLine, UploadCloud } from 'lucide-react';
 import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,8 @@ const sidebarItems = [
   { id: 'trash', label: 'Trash', icon: Trash2 },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
+
+const ROOMS_PER_PAGE = 3;
 
 const formatRelativeTime = (timestamp) => {
   const value = new Date(timestamp).getTime();
@@ -64,6 +66,8 @@ const DashboardPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [roomPage, setRoomPage] = useState(0);
+  const [roomPageDirection, setRoomPageDirection] = useState('down');
 
   const greetingName = user?.name?.split(' ')[0] || 'Builder';
   const greetingText = `welcome_back --user ${greetingName.toLowerCase()}`;
@@ -174,6 +178,25 @@ const DashboardPage = () => {
   const favoriteCount = rooms.filter((room) => room.isStarred).length;
   const sharedCount = rooms.filter((room) => room.privacy === 'shared').length;
   const publishedCount = rooms.filter((room) => room.community?.isPublished).length;
+  const totalRoomPages = Math.max(1, Math.ceil(filteredRooms.length / ROOMS_PER_PAGE));
+  const hasRoomCarousel = filteredRooms.length > ROOMS_PER_PAGE;
+  const visibleRooms = hasRoomCarousel
+    ? filteredRooms.slice(roomPage * ROOMS_PER_PAGE, (roomPage + 1) * ROOMS_PER_PAGE)
+    : filteredRooms;
+
+  useEffect(() => {
+    setRoomPage((current) => Math.min(current, totalRoomPages - 1));
+  }, [totalRoomPages]);
+
+  const showPreviousRoomPage = () => {
+    setRoomPageDirection('up');
+    setRoomPage((current) => Math.max(0, current - 1));
+  };
+
+  const showNextRoomPage = () => {
+    setRoomPageDirection('down');
+    setRoomPage((current) => Math.min(totalRoomPages - 1, current + 1));
+  };
 
   const openRoom = async (room) => {
     const destination = room.language === 'react' ? `/react-studio/${room.roomId}` : `/editor/${room.roomId}`;
@@ -603,20 +626,48 @@ const DashboardPage = () => {
                 <h3>Projects</h3>
                 <span>{filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} in view</span>
               </div>
-              <button type="button" className="btn-outline" onClick={fetchRooms}>
-                Refresh
-              </button>
+              <div className="dashboardPanelActions">
+                {hasRoomCarousel ? (
+                  <div className="roomCarouselControls" aria-label="Project rows navigation">
+                    <button
+                      type="button"
+                      className="dashboardIconBtn roomCarouselBtn"
+                      onClick={showPreviousRoomPage}
+                      disabled={roomPage === 0}
+                      aria-label="Show previous project row"
+                    >
+                      <ChevronUp size={16} />
+                    </button>
+                    <span className="roomCarouselStatus">{roomPage + 1}/{totalRoomPages}</span>
+                    <button
+                      type="button"
+                      className="dashboardIconBtn roomCarouselBtn"
+                      onClick={showNextRoomPage}
+                      disabled={roomPage >= totalRoomPages - 1}
+                      aria-label="Show next project row"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                  </div>
+                ) : null}
+                <button type="button" className="btn-outline" onClick={fetchRooms}>
+                  Refresh
+                </button>
+              </div>
             </div>
 
             {isLoading ? (
               <div className="roomGrid">
-                {Array.from({ length: 6 }).map((_, index) => (
+                {Array.from({ length: ROOMS_PER_PAGE }).map((_, index) => (
                   <div key={index} className="roomCard skeletonCard" />
                 ))}
               </div>
             ) : filteredRooms.length ? (
-              <div className="roomGrid">
-                {filteredRooms.map((room) => (
+              <div
+                key={`room-page-${roomPage}`}
+                className={`roomGrid roomGridCarousel roomGridCarousel-${roomPageDirection}`}
+              >
+                {visibleRooms.map((room) => (
                   <article key={room.roomId} className="roomCard">
                     <div className="roomCardGlow" />
                     <div className="roomCardHeader">
