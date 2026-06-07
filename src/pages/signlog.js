@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { backend } from "../socket";
 import { useAuth } from "../context/AuthContext";
+import GoogleAuthButton from "../components/GoogleAuthButton";
 
 export default function Signlog() {
 const navigate=useNavigate();
@@ -62,6 +63,27 @@ const handleSubmit = async (e) => {
     setIsSubmitting(false);
   }
 };
+
+const handleGoogleCredential = useCallback(async (credential) => {
+  setIsSubmitting(true);
+
+  try {
+    const { data } = await axios.post(`${backend}/api/auth/google`, {
+      credential,
+    });
+
+    login({
+      token: data.token,
+      user: data.user,
+    });
+    toast.success(data.message || 'Signed in with Google successfully.');
+    navigate('/dashboard');
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Unable to sign in with Google.');
+  } finally {
+    setIsSubmitting(false);
+  }
+}, [login, navigate]);
 
   return (
     <div className="auth-root">
@@ -144,10 +166,11 @@ const handleSubmit = async (e) => {
 
             <div className="divider"><span>or</span></div>
 
-            <button type="button" className="google-btn">
-              
-              Continue with Google
-            </button>
+            <GoogleAuthButton
+              text="continue_with"
+              disabled={isSubmitting}
+              onCredential={handleGoogleCredential}
+            />
 
             <div className="switch-row">
               <span>New here?</span>

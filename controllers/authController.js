@@ -13,6 +13,7 @@ const sanitizeUser = (user) => ({
   name: user.name,
   email: user.email,
   phone: user.phone || '',
+  avatar: user.avatar || '',
   emailVerified: Boolean(user.emailVerified),
   createdAt: user.createdAt,
 });
@@ -32,6 +33,31 @@ const sendVerificationOtpEmailInBackground = ({ to, name, otp }) => {
       console.error(`Failed to send verification OTP to ${to}:`, error.message);
     });
   });
+};
+
+const verifyGoogleCredential = async (credential) => {
+  const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
+  if (!googleClientId) {
+    throw new Error('Google authentication is not configured. Set GOOGLE_CLIENT_ID in the server environment.');
+  }
+
+  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+  const payload = await response.json();
+
+  if (!response.ok) {
+    throw new Error(payload.error_description || payload.error || 'Unable to verify Google credential.');
+  }
+
+  if (payload.aud !== googleClientId) {
+    throw new Error('Google credential audience does not match this app.');
+  }
+
+  if (payload.email_verified !== 'true' && payload.email_verified !== true) {
+    throw new Error('Google email is not verified.');
+  }
+
+  return payload;
 };
 
 const registerUser = async (req, res) => {
@@ -100,6 +126,10 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
+    if (!user.password) {
+      return res.status(401).json({ message: 'This account uses Google sign-in. Continue with Google instead.' });
+    }
+
     if (!user.emailVerified) {
       return res.status(403).json({
         message: 'Please verify your email with the OTP before logging in.',
@@ -121,6 +151,50 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: 'Unable to log in.', details: error.message });
+  }
+};
+
+const googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required.' });
+    }
+
+    const googleUser = await verifyGoogleCredential(credential);
+    const normalizedEmail = googleUser.email?.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ message: 'Google account did not provide an email.' });
+    }
+
+    let user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      user = new User({
+        name: googleUser.name || normalizedEmail.split('@')[0],
+        email: normalizedEmail,
+        authProvider: 'google',
+        googleId: googleUser.sub || '',
+        avatar: googleUser.picture || '',
+        emailVerified: true,
+      });
+    } else {
+      user.emailVerified = true;
+      user.googleId = user.googleId || googleUser.sub || '';
+      user.avatar = googleUser.picture || user.avatar || '';
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Signed in with Google successfully.',
+      token: generateToken(user._id.toString()),
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(401).json({ message: 'Unable to sign in with Google.', details: error.message });
   }
 };
 
@@ -298,6 +372,7 @@ const updatePassword = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  googleAuth,
   verifyRegistrationOtp,
   resendRegistrationOtp,
   getCurrentUser,

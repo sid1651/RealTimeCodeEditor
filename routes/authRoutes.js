@@ -2,6 +2,7 @@ const express = require('express');
 const {
   registerUser,
   loginUser,
+  googleAuth,
   verifyRegistrationOtp,
   resendRegistrationOtp,
   getCurrentUser,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/google', googleAuth);
 router.post('/verify-registration-otp', verifyRegistrationOtp);
 router.post('/resend-registration-otp', resendRegistrationOtp);
 router.get('/me', protect, getCurrentUser);

@@ -24,9 +24,25 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required() {
+        return this.authProvider === 'local';
+      },
       minlength: 6,
       select: false,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
+    googleId: {
+      type: String,
+      default: '',
+      index: true,
+    },
+    avatar: {
+      type: String,
+      default: '',
     },
     emailVerified: {
       type: Boolean,
