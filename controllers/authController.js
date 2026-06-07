@@ -6,6 +6,7 @@ const { sendVerificationOtpEmail } = require('../utils/emailService');
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const PASSWORD_SALT_ROUNDS = Number(process.env.PASSWORD_SALT_ROUNDS || 10);
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -23,6 +24,14 @@ const applyVerificationOtp = (user, otp) => {
   user.verificationOtpHash = hashOtp(otp);
   user.verificationOtpExpiresAt = new Date(Date.now() + OTP_TTL_MS);
   user.verificationOtpSentAt = new Date();
+};
+
+const sendVerificationOtpEmailInBackground = ({ to, name, otp }) => {
+  setImmediate(() => {
+    sendVerificationOtpEmail({ to, name, otp }).catch((error) => {
+      console.error(`Failed to send verification OTP to ${to}:`, error.message);
+    });
+  });
 };
 
 const registerUser = async (req, res) => {
@@ -48,7 +57,7 @@ const registerUser = async (req, res) => {
       return res.status(409).json({ message: 'An account with this email already exists.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
     const otp = createOtp();
     const user = new User({
       name: name.trim(),
@@ -59,15 +68,15 @@ const registerUser = async (req, res) => {
     });
     applyVerificationOtp(user, otp);
 
-    await sendVerificationOtpEmail({
+    await user.save();
+    sendVerificationOtpEmailInBackground({
       to: normalizedEmail,
       name: user.name,
       otp,
     });
-    await user.save();
 
     return res.status(201).json({
-      message: 'Verification OTP sent to your email.',
+      message: 'Verification OTP is being sent to your email.',
       requiresVerification: true,
       email: normalizedEmail,
     });
@@ -196,15 +205,15 @@ const resendRegistrationOtp = async (req, res) => {
     const otp = createOtp();
     applyVerificationOtp(user, otp);
 
-    await sendVerificationOtpEmail({
+    await user.save();
+    sendVerificationOtpEmailInBackground({
       to: normalizedEmail,
       name: user.name,
       otp,
     });
-    await user.save();
 
     return res.status(200).json({
-      message: 'A new OTP has been sent to your email.',
+      message: 'A new OTP is being sent to your email.',
       requiresVerification: true,
       email: normalizedEmail,
     });
@@ -275,7 +284,7 @@ const updatePassword = async (req, res) => {
       return res.status(401).json({ message: 'Current password is incorrect.' });
     }
 
-    user.password = await bcrypt.hash(newPassword, 12);
+    user.password = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await user.save();
 
     return res.status(200).json({

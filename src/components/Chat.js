@@ -12,7 +12,7 @@ const formatClock = (value) => {
   return `${minutes}:${seconds}`;
 };
 
-const Chat = ({ socketRef, roomId, username, isOpen, onClose }) => {
+const Chat = ({ socketRef, roomId, username, isOpen, onClose, onUnreadMessage }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -32,6 +32,10 @@ const Chat = ({ socketRef, roomId, username, isOpen, onClose }) => {
     }
 
     const handleReceiveMessage = (data) => {
+      if (!isOpen) {
+        onUnreadMessage?.(true);
+      }
+
       setMessages((prev) => [...prev, { ...data, isMe: false }]);
     };
 
@@ -40,7 +44,7 @@ const Chat = ({ socketRef, roomId, username, isOpen, onClose }) => {
     return () => {
       activeSocket.off('receive-message', handleReceiveMessage);
     };
-  }, [socketRef, isOpen]);
+  }, [socketRef, isOpen, onUnreadMessage]);
 
   useEffect(() => {
     if (messagesEndRef.current) {

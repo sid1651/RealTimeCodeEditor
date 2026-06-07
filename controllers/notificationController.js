@@ -10,6 +10,7 @@ const formatNotification = (notification) => ({
   actorName: notification.actorName,
   metadata: notification.metadata || {},
   readAt: notification.readAt,
+  actionCompletedAt: notification.actionCompletedAt,
   createdAt: notification.createdAt,
 });
 
@@ -50,7 +51,36 @@ const markAllNotificationsRead = async (req, res) => {
   }
 };
 
+const markNotificationActionCompleted = async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndUpdate(
+      {
+        _id: req.params.notificationId,
+        recipientUser: req.user._id,
+      },
+      {
+        $set: { actionCompletedAt: new Date() },
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found.' });
+    }
+
+    return res.status(200).json({
+      message: 'Notification action completed.',
+      notification: formatNotification(notification),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to update notification.', details: error.message });
+  }
+};
+
 module.exports = {
   listNotifications,
   markAllNotificationsRead,
+  markNotificationActionCompleted,
 };

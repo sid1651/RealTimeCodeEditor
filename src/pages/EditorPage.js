@@ -4,6 +4,7 @@ import Editor from '../components/Editor';
 import EditorHTML from '../components/Editorhtml';
 import EditorCSS from '../components/Editorcss';
 import Chat from '../components/Chat';
+import RoomCodeLoader from '../components/RoomCodeLoader';
 import { initSocketJS, initSocketHTML, initSocketCSS } from '../socket';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -48,6 +49,9 @@ const EditorPage = () => {
   const [pendingClients, setPendingClients] = useState([]);
   const [socketsReady, setSocketsReady] = useState(false);
   const [joinStatus, setJoinStatus] = useState('connecting');
+  const [isRoomLoading, setIsRoomLoading] = useState(true);
+  const [roomLoadError, setRoomLoadError] = useState('');
+  const [roomLoadRetryKey, setRoomLoadRetryKey] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar collapsed
   const [Colaps] = useState(false); // Preview collapsed
 
@@ -58,6 +62,7 @@ const EditorPage = () => {
     css: false,
   });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadChatMessage, setHasUnreadChatMessage] = useState(false);
 
   // ✅ Terminal & Code Execution State
   const [activeTab, setActiveTab] = useState('preview'); // 'preview' | 'terminal'
@@ -76,10 +81,29 @@ const EditorPage = () => {
 
   const iframeRef = useRef(null);
 
+  useEffect(() => {
+    if (isChatOpen) {
+      setHasUnreadChatMessage(false);
+    }
+  }, [isChatOpen]);
+
   const applyRoomCode = (nextCode = {}) => {
-    setJsCode(nextCode.javascript || '');
-    setHtmlCode(nextCode.html || '');
-    setCssCode(nextCode.css || '');
+    const nextJs = nextCode.javascript || '';
+    const nextHtml = nextCode.html || '';
+    const nextCss = nextCode.css || '';
+
+    codeRef.current.javascript = nextJs;
+    codeRef.current.htmlmixed = nextHtml;
+    codeRef.current.css = nextCss;
+    latestCodeRef.current = {
+      javascript: nextJs,
+      html: nextHtml,
+      css: nextCss,
+    };
+
+    setJsCode(nextJs);
+    setHtmlCode(nextHtml);
+    setCssCode(nextCss);
   };
 
   // --- SAVE CODE PER ROOM IN LOCAL STORAGE ---
@@ -106,24 +130,47 @@ const EditorPage = () => {
   }, [userRole]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadRoom = async () => {
+      roomLoadedRef.current = false;
+      setRoomLoadError('');
+      setIsRoomLoading(true);
+
       try {
         const data = await getRoomById(roomId);
-        const room = data.room;
-        if (!room) {
+        if (cancelled) {
           return;
         }
 
-        roomLoadedRef.current = true;
+        const room = data.room;
+        if (!room) {
+          setRoomLoadError('This room could not be found. Please check the link or go back to the dashboard.');
+          return;
+        }
+
         const nextCode = room.code || {};
         applyRoomCode(nextCode);
+        roomLoadedRef.current = true;
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Unable to load room data.');
+        if (!cancelled) {
+          const message = error.response?.data?.message || 'Unable to load room data.';
+          setRoomLoadError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRoomLoading(false);
+        }
       }
     };
 
     loadRoom();
-  }, [roomId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, roomLoadRetryKey]);
 
   useEffect(() => {
     const loadSnapshots = async () => {
@@ -199,6 +246,10 @@ const EditorPage = () => {
 
   // --- INIT SOCKETS AND JOIN ROOM ---
   useEffect(() => {
+    if (isRoomLoading || !roomLoadedRef.current) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     const initSecondarySockets = async () => {
@@ -365,7 +416,7 @@ const EditorPage = () => {
       socketHTMLRef.current = null;
       socketCSSRef.current = null;
     };
-  }, [navigate, roomId, username, user?.id]);
+  }, [isRoomLoading, navigate, roomId, username, user?.id]);
 
   const isLeader = clients.some(client => client.participantId === participantIdRef.current && client.isLeader);
 
@@ -604,6 +655,19 @@ const EditorPage = () => {
     }
   };
 
+  if (isRoomLoading || roomLoadError) {
+    return (
+      <RoomCodeLoader
+        title="Opening room"
+        subtitle="Restoring the saved workspace before live collaboration starts."
+        status="Loading saved room state"
+        error={roomLoadError}
+        onRetry={() => setRoomLoadRetryKey((key) => key + 1)}
+        onBack={() => navigate('/dashboard')}
+      />
+    );
+  }
+
   if (joinStatus !== 'approved') {
     const isWaitingForHost = joinStatus === 'pending';
 
@@ -763,8 +827,26 @@ const EditorPage = () => {
           )}
           <div className="actionButtons">
             {!isCollapsed && (
-              <button className="btn-primary" style={{ marginBottom: '10px' }} onClick={() => setIsChatOpen(true)}>
+              <button
+                className="btn-primary"
+                style={{ marginBottom: '10px', position: 'relative' }}
+                onClick={() => setIsChatOpen(true)}
+              >
                 <MessageSquare size={16} /> Chat
+                {hasUnreadChatMessage ? (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '10px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '999px',
+                      background: '#ef4444',
+                      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.18)',
+                    }}
+                  />
+                ) : null}
               </button>
             )}
             {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Invite</button>}
@@ -1055,10 +1137,10 @@ const EditorPage = () => {
           username={username}
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
+          onUnreadMessage={setHasUnreadChatMessage}
         />
       )}
     </div>
   );
 };
 export default EditorPage;
- 

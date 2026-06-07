@@ -9,3 +9,8 @@ export const markNotificationsRead = async () => {
   const { data } = await api.put('/api/notifications/read-all');
   return data;
 };
+
+export const markNotificationActionCompleted = async (notificationId) => {
+  const { data } = await api.put(`/api/notifications/${notificationId}/action-completed`);
+  return data;
+};

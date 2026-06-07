@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Bell, ChevronDown, ChevronUp, Clock3, Code2, Compass, FolderOpen, MoreHorizontal, Plus, Search, Settings, Share2, Sparkles, Star, Trash2, LogOut, PencilLine, UploadCloud } from 'lucide-react';
 import { v4 as uuidV4 } from 'uuid';
@@ -7,20 +7,21 @@ import { useAuth } from '../context/AuthContext';
 import { deleteRoom as deleteRoomRequest, getUserRooms, updateRoom } from '../utils/roomApi';
 import { updatePassword as updatePasswordRequest } from '../utils/accountApi';
 import { getRoomAnalytics } from '../utils/analyticsApi';
-import { getNotifications, markNotificationsRead } from '../utils/notificationApi';
+import { getNotifications, markNotificationActionCompleted, markNotificationsRead } from '../utils/notificationApi';
 import { updateCommunityProject } from '../utils/communityApi';
 
 const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: Sparkles },
-  { id: 'community', label: 'Community', icon: Compass },
-  { id: 'recent', label: 'Recent Rooms', icon: Clock3 },
-  { id: 'favorites', label: 'Favorites', icon: Star },
-  { id: 'shared', label: 'Shared', icon: Share2 },
-  { id: 'trash', label: 'Trash', icon: Trash2 },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: Sparkles, path: '/dashboard' },
+  { id: 'community', label: 'Community', icon: Compass, path: '/community' },
+  { id: 'recent', label: 'Recent Rooms', icon: Clock3, path: '/recent-rooms' },
+  { id: 'favorites', label: 'Favorites', icon: Star, path: '/favorites' },
+  { id: 'shared', label: 'Shared', icon: Share2, path: '/shared' },
+  { id: 'trash', label: 'Trash', icon: Trash2, path: '/trash' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 const ROOMS_PER_PAGE = 3;
+const NOTIFICATIONS_PER_PAGE = 5;
 
 const formatRelativeTime = (timestamp) => {
   const value = new Date(timestamp).getTime();
@@ -45,7 +46,6 @@ const DashboardPage = () => {
   const { user, logout } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [editingRoom, setEditingRoom] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -66,11 +66,32 @@ const DashboardPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationPopoverRef = useRef(null);
+  const [visibleNotificationCount, setVisibleNotificationCount] = useState(NOTIFICATIONS_PER_PAGE);
   const [roomPage, setRoomPage] = useState(0);
   const [roomPageDirection, setRoomPageDirection] = useState('down');
 
   const greetingName = user?.name?.split(' ')[0] || 'Builder';
   const greetingText = `welcome_back --user ${greetingName.toLowerCase()}`;
+  const currentSection = useMemo(() => {
+    switch (location.pathname) {
+      case '/':
+      case '/dashboard':
+        return 'dashboard';
+      case '/recent-rooms':
+        return 'recent';
+      case '/favorites':
+        return 'favorites';
+      case '/shared':
+        return 'shared';
+      case '/trash':
+        return 'trash';
+      case '/settings':
+        return 'settings';
+      default:
+        return 'dashboard';
+    }
+  }, [location.pathname]);
 
   const fetchRooms = useCallback(async () => {
     if (!user?.id) {
@@ -135,6 +156,36 @@ const DashboardPage = () => {
   }, [location.state]);
 
   useEffect(() => {
+    if (!isNotificationsOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (!notificationPopoverRef.current?.contains(event.target)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNotificationsOpen]);
+
+  useEffect(() => {
+    setVisibleNotificationCount(NOTIFICATIONS_PER_PAGE);
+  }, [notifications.length, isNotificationsOpen]);
+
+  useEffect(() => {
     setTypedGreeting('');
 
     let index = 0;
@@ -154,13 +205,13 @@ const DashboardPage = () => {
     const normalized = searchQuery.trim().toLowerCase();
     let source = [...rooms];
 
-    if (activeSection === 'recent') {
+    if (currentSection === 'recent') {
       source = source.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    } else if (activeSection === 'favorites') {
+    } else if (currentSection === 'favorites') {
       source = source.filter((room) => room.isStarred);
-    } else if (activeSection === 'shared') {
+    } else if (currentSection === 'shared') {
       source = source.filter((room) => room.privacy === 'shared');
-    } else if (activeSection === 'trash') {
+    } else if (currentSection === 'trash') {
       source = [];
     }
 
@@ -173,11 +224,13 @@ const DashboardPage = () => {
       || room.language.toLowerCase().includes(normalized)
       || room.privacy.toLowerCase().includes(normalized)
     );
-  }, [activeSection, rooms, searchQuery]);
+  }, [currentSection, rooms, searchQuery]);
 
   const favoriteCount = rooms.filter((room) => room.isStarred).length;
   const sharedCount = rooms.filter((room) => room.privacy === 'shared').length;
   const publishedCount = rooms.filter((room) => room.community?.isPublished).length;
+  const visibleNotifications = notifications.slice(0, visibleNotificationCount);
+  const hasMoreNotifications = notifications.length > visibleNotificationCount;
   const totalRoomPages = Math.max(1, Math.ceil(filteredRooms.length / ROOMS_PER_PAGE));
   const hasRoomCarousel = filteredRooms.length > ROOMS_PER_PAGE;
   const visibleRooms = hasRoomCarousel
@@ -209,9 +262,20 @@ const DashboardPage = () => {
     });
   };
 
-  const openNotificationRoom = (notification) => {
+  const openNotificationRoom = async (notification) => {
     if (!notification.roomId) {
       return;
+    }
+
+    try {
+      const data = await markNotificationActionCompleted(notification.id);
+      if (data.notification) {
+        setNotifications((current) => current.map((item) => (
+          item.id === notification.id ? data.notification : item
+        )));
+      }
+    } catch (error) {
+      console.error('Unable to mark notification action as completed', error);
     }
 
     const roomLanguage = notification.metadata?.roomLanguage === 'react' ? 'react' : 'vanilla';
@@ -340,24 +404,6 @@ const DashboardPage = () => {
     }
   };
 
-  const roomMetrics = [
-    {
-      label: 'Active Projects',
-      value: analytics.totalProjects || rooms.length,
-      tone: 'cyan',
-    },
-    {
-      label: 'Total Opens',
-      value: analytics.totalOpens || 0,
-      tone: 'purple',
-    },
-    {
-      label: 'Most Edited',
-      value: analytics.mostEditedLanguage === 'react' ? 'React' : analytics.mostEditedLanguage === 'vanilla' ? 'Vanilla' : 'N/A',
-      tone: 'blue',
-    },
-  ];
-
   const toggleNotifications = async () => {
     const nextOpen = !isNotificationsOpen;
     setIsNotificationsOpen(nextOpen);
@@ -402,6 +448,46 @@ const DashboardPage = () => {
     }
   };
 
+  const sectionMeta = useMemo(() => {
+    switch (currentSection) {
+      case 'recent':
+        return {
+          title: 'Recent Rooms',
+          subtitle: `${filteredRooms.length} recently active room${filteredRooms.length === 1 ? '' : 's'}`,
+          emptyTitle: 'No recent rooms yet.',
+          emptyDescription: 'Open a room and it will appear here for quick access.',
+        };
+      case 'favorites':
+        return {
+          title: 'Favorites',
+          subtitle: `${filteredRooms.length} starred room${filteredRooms.length === 1 ? '' : 's'}`,
+          emptyTitle: 'No favorites yet.',
+          emptyDescription: 'Star projects from your dashboard to keep them close.',
+        };
+      case 'shared':
+        return {
+          title: 'Shared Rooms',
+          subtitle: `${filteredRooms.length} shared room${filteredRooms.length === 1 ? '' : 's'}`,
+          emptyTitle: 'No shared rooms yet.',
+          emptyDescription: 'Invite collaborators to a room and it will show up here.',
+        };
+      case 'trash':
+        return {
+          title: 'Trash',
+          subtitle: 'Deleted rooms will appear here when trash support is added.',
+          emptyTitle: 'Trash is empty.',
+          emptyDescription: 'There are no deleted rooms to review right now.',
+        };
+      default:
+        return {
+          title: 'Projects',
+          subtitle: `${filteredRooms.length} room${filteredRooms.length === 1 ? '' : 's'} in view`,
+          emptyTitle: 'No rooms match this view yet.',
+          emptyDescription: 'Create a project or change filters to surface your collaborative workspaces.',
+        };
+    }
+  }, [currentSection, filteredRooms.length]);
+
   return (
     <div className="dashboardPage">
       <aside className="dashboardSidebar">
@@ -430,14 +516,8 @@ const DashboardPage = () => {
               <button
                 key={item.id}
                 type="button"
-                className={`dashboardNavItem ${activeSection === item.id ? 'active' : ''}`}
-                onClick={() => {
-                  if (item.id === 'community') {
-                    navigate('/community');
-                    return;
-                  }
-                  setActiveSection(item.id);
-                }}
+                className={`dashboardNavItem ${currentSection === item.id ? 'active' : ''}`}
+                onClick={() => navigate(item.path)}
               >
                 <span className="dashboardNavLabel">
                   <Icon size={17} />
@@ -476,52 +556,64 @@ const DashboardPage = () => {
           </label>
 
           <div className="dashboardTopbarActions">
-            <button type="button" className="dashboardIconBtn notificationTrigger" onClick={toggleNotifications}>
-              <Bell size={18} />
-              {unreadCount > 0 ? <span className="notificationBadge">{unreadCount > 9 ? '9+' : unreadCount}</span> : null}
-            </button>
+            <div className="notificationPopover" ref={notificationPopoverRef}>
+              <button type="button" className="dashboardIconBtn notificationTrigger" onClick={toggleNotifications}>
+                <Bell size={18} />
+                {unreadCount > 0 ? <span className="notificationBadge">{unreadCount > 9 ? '9+' : unreadCount}</span> : null}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="notificationPanel">
+                  <div className="dashboardPanelHead">
+                    <div>
+                      <h3>Notifications</h3>
+                      <span>{notifications.length ? `${notifications.length} updates` : 'No notifications yet'}</span>
+                    </div>
+                  </div>
+
+                  <div className="notificationList">
+                    {notifications.length ? visibleNotifications.map((notification) => (
+                      <article key={notification.id} className={`notificationItem ${notification.readAt ? 'read' : 'unread'}`}>
+                        <div className="notificationItemTop">
+                          <strong>{notification.title}</strong>
+                          <span>{formatRelativeTime(notification.createdAt)}</span>
+                        </div>
+                        <p>{notification.message}</p>
+                        {notification.roomTitle ? <small>{notification.roomTitle}</small> : null}
+                        {notification.type === 'invite' && notification.roomId && !notification.actionCompletedAt ? (
+                          <div className="notificationItemActions">
+                            <button
+                              type="button"
+                              className="dashboardMiniBtn notificationActionBtn"
+                              onClick={() => openNotificationRoom(notification)}
+                            >
+                              Join Room
+                            </button>
+                          </div>
+                        ) : null}
+                      </article>
+                    )) : (
+                      <div className="emptyPanelState">You are all caught up.</div>
+                    )}
+                  </div>
+
+                  {hasMoreNotifications ? (
+                    <button
+                      type="button"
+                      className="btn-outline notificationShowMoreBtn"
+                      onClick={() => setVisibleNotificationCount((current) => current + NOTIFICATIONS_PER_PAGE)}
+                    >
+                      Show More
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </div>
             <button type="button" className="btn-primary dashboardCreateBtn" onClick={() => navigate('/home')}>
               <Plus size={18} /> Create Room
             </button>
           </div>
         </header>
-
-        {isNotificationsOpen && (
-          <div className="notificationPanel">
-            <div className="dashboardPanelHead">
-              <div>
-                <h3>Notifications</h3>
-                <span>{notifications.length ? `${notifications.length} updates` : 'No notifications yet'}</span>
-              </div>
-            </div>
-
-            <div className="notificationList">
-              {notifications.length ? notifications.map((notification) => (
-                <article key={notification.id} className={`notificationItem ${notification.readAt ? 'read' : 'unread'}`}>
-                  <div className="notificationItemTop">
-                    <strong>{notification.title}</strong>
-                    <span>{formatRelativeTime(notification.createdAt)}</span>
-                  </div>
-                  <p>{notification.message}</p>
-                  {notification.roomTitle ? <small>{notification.roomTitle}</small> : null}
-                  {notification.type === 'invite' && notification.roomId ? (
-                    <div className="notificationItemActions">
-                      <button
-                        type="button"
-                        className="dashboardMiniBtn notificationActionBtn"
-                        onClick={() => openNotificationRoom(notification)}
-                      >
-                        Join Room
-                      </button>
-                    </div>
-                  ) : null}
-                </article>
-              )) : (
-                <div className="emptyPanelState">You are all caught up.</div>
-              )}
-            </div>
-          </div>
-        )}
 
         <main className="dashboardContent">
           <section className="dashboardHero">
@@ -545,22 +637,14 @@ const DashboardPage = () => {
                 <button type="button" className="btn-primary" onClick={() => navigate('/home')}>
                   <Plus size={18} /> New Room
                 </button>
-                <button type="button" className="btn-outline" onClick={() => setActiveSection('recent')}>
+                <button type="button" className="btn-outline" onClick={() => navigate('/recent-rooms')}>
                   <FolderOpen size={18} /> Browse Recent
                 </button>
               </div>
             </div>
-            <div className="dashboardStatsGrid">
-              {roomMetrics.map((metric) => (
-                <article key={metric.label} className={`dashboardStatCard ${metric.tone}`}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                </article>
-              ))}
-            </div>
           </section>
 
-          {activeSection === 'settings' ? (
+          {currentSection === 'settings' ? (
             <section className="dashboardRoomsSection settingsSection">
               <div className="dashboardPanelHead">
                 <div>
@@ -623,8 +707,8 @@ const DashboardPage = () => {
           <section className="dashboardRoomsSection">
             <div className="dashboardPanelHead">
               <div>
-                <h3>Projects</h3>
-                <span>{filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} in view</span>
+                <h3>{sectionMeta.title}</h3>
+                <span>{sectionMeta.subtitle}</span>
               </div>
               <div className="dashboardPanelActions">
                 {hasRoomCarousel ? (
@@ -719,8 +803,8 @@ const DashboardPage = () => {
             ) : (
               <div className="emptyDashboardState">
                 <Code2 size={28} />
-                <h4>No rooms match this view yet.</h4>
-                <p>Create a project or change filters to surface your collaborative workspaces.</p>
+                <h4>{sectionMeta.emptyTitle}</h4>
+                <p>{sectionMeta.emptyDescription}</p>
                 <button type="button" className="btn-primary" onClick={() => navigate('/home')}>
                   <Plus size={18} /> Create your first room
                 </button>

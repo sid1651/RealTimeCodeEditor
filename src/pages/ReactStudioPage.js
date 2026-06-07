@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Client from '../components/Client';
 import CollaborativeCodeEditor from '../components/CollaborativeCodeEditor';
 import Chat from '../components/Chat';
+import RoomCodeLoader from '../components/RoomCodeLoader';
 import { initSocketJS, initSocketCSS } from '../socket';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -544,6 +545,9 @@ const ReactStudioPage = () => {
   const [pendingClients, setPendingClients] = useState([]);
   const [socketsReady, setSocketsReady] = useState(false);
   const [joinStatus, setJoinStatus] = useState('connecting');
+  const [isRoomLoading, setIsRoomLoading] = useState(true);
+  const [roomLoadError, setRoomLoadError] = useState('');
+  const [roomLoadRetryKey, setRoomLoadRetryKey] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [Colaps] = useState(false);
   const [collapseEditor, setCollapseEditor] = useState({
@@ -551,6 +555,7 @@ const ReactStudioPage = () => {
     css: false,
   });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadChatMessage, setHasUnreadChatMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('preview');
   const [consoleLines, setConsoleLines] = useState(['Preview ready.']);
   const [snapshots, setSnapshots] = useState([]);
@@ -565,9 +570,25 @@ const ReactStudioPage = () => {
   const [isInviteSending, setIsInviteSending] = useState(false);
   const reactEditorMode = useMemo(() => ({ name: 'javascript', json: false, jsx: true }), []);
 
+  useEffect(() => {
+    if (isChatOpen) {
+      setHasUnreadChatMessage(false);
+    }
+  }, [isChatOpen]);
+
   const applyRoomCode = (nextCode = {}) => {
-    setReactCode(nextCode.react || DEFAULT_REACT_CODE);
-    setCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
+    const nextReact = nextCode.react || DEFAULT_REACT_CODE;
+    const nextCss = nextCode.reactCss || DEFAULT_CSS_CODE;
+
+    codeRef.current.react = nextReact;
+    codeRef.current.reactCss = nextCss;
+    latestCodeRef.current = {
+      react: nextReact,
+      reactCss: nextCss,
+    };
+
+    setReactCode(nextReact);
+    setCssCode(nextCss);
   };
 
   useEffect(() => {
@@ -587,21 +608,34 @@ const ReactStudioPage = () => {
   }, [userRole]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadRoom = async () => {
+      roomLoadedRef.current = false;
+      setRoomLoadError('');
+      setIsRoomLoading(true);
+
       try {
         const data = await getRoomById(roomId);
-        const room = data.room;
-        if (!room) {
+        if (cancelled) {
           return;
         }
 
-        roomLoadedRef.current = true;
+        const room = data.room;
+        if (!room) {
+          setRoomLoadError('This room could not be found. Please check the link or go back to the dashboard.');
+          return;
+        }
+
         const nextCode = room.code || {};
         const nextReact = getStarterReactCode(nextCode.react || DEFAULT_REACT_CODE);
         const nextCss = getStarterCssCode(nextCode.reactCss || DEFAULT_CSS_CODE);
 
-        setReactCode(nextReact);
-        setCssCode(nextCss);
+        applyRoomCode({
+          react: nextReact,
+          reactCss: nextCss,
+        });
+        roomLoadedRef.current = true;
 
         if (nextReact !== nextCode.react || nextCss !== nextCode.reactCss) {
           await updateRoom(roomId, {
@@ -613,12 +647,24 @@ const ReactStudioPage = () => {
           });
         }
       } catch (error) {
-        toast.error(error.response?.data?.message || 'Unable to load room data.');
+        if (!cancelled) {
+          const message = error.response?.data?.message || 'Unable to load room data.';
+          setRoomLoadError(message);
+          toast.error(message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRoomLoading(false);
+        }
       }
     };
 
     loadRoom();
-  }, [roomId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, roomLoadRetryKey]);
 
   useEffect(() => {
     const loadSnapshots = async () => {
@@ -691,6 +737,10 @@ const ReactStudioPage = () => {
   }, [roomId]);
 
   useEffect(() => {
+    if (isRoomLoading || !roomLoadedRef.current) {
+      return undefined;
+    }
+
     let cancelled = false;
 
     const initSecondarySocket = async () => {
@@ -829,7 +879,7 @@ const ReactStudioPage = () => {
       socketReactRef.current = null;
       socketCssRef.current = null;
     };
-  }, [navigate, roomId, username, user?.id]);
+  }, [isRoomLoading, navigate, roomId, username, user?.id]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -1012,6 +1062,19 @@ const ReactStudioPage = () => {
     }
   };
 
+  if (isRoomLoading || roomLoadError) {
+    return (
+      <RoomCodeLoader
+        title="Opening React room"
+        subtitle="Restoring the saved workspace before live collaboration starts."
+        status="Loading saved room state"
+        error={roomLoadError}
+        onRetry={() => setRoomLoadRetryKey((key) => key + 1)}
+        onBack={() => navigate('/dashboard')}
+      />
+    );
+  }
+
   if (joinStatus !== 'approved') {
     const isWaitingForHost = joinStatus === 'pending';
 
@@ -1173,8 +1236,26 @@ const ReactStudioPage = () => {
           )}
           <div className="actionButtons">
             {!isCollapsed && (
-              <button className="btn-primary" style={{ marginBottom: '10px' }} onClick={() => setIsChatOpen(true)}>
+              <button
+                className="btn-primary"
+                style={{ marginBottom: '10px', position: 'relative' }}
+                onClick={() => setIsChatOpen(true)}
+              >
                 <MessageSquare size={16} /> Chat
+                {hasUnreadChatMessage ? (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '10px',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '999px',
+                      background: '#ef4444',
+                      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.18)',
+                    }}
+                  />
+                ) : null}
               </button>
             )}
             {!isCollapsed && <button className="btn-primary copyBtn" onClick={copySpectatorInvite}><Copy size={16} /> Copy Invite</button>}
@@ -1311,6 +1392,7 @@ const ReactStudioPage = () => {
           username={username}
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
+          onUnreadMessage={setHasUnreadChatMessage}
         />
       )}
 

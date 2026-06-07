@@ -54,6 +54,10 @@ const notificationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    actionCompletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

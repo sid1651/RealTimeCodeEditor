@@ -47,7 +47,7 @@ function Signup() {
 
             setPendingVerificationEmail(data.email || formData.email.trim().toLowerCase());
             setIsOtpStep(true);
-            toast.success('OTP sent to your email.');
+            toast.success(data.message || 'OTP sent to your email.');
         } catch (error) {
             const responseData = error.response?.data;
 
@@ -103,7 +103,7 @@ function Signup() {
             });
 
             setPendingVerificationEmail(data.email || pendingVerificationEmail);
-            toast.success('A new OTP has been sent.');
+            toast.success(data.message || 'A new OTP has been sent.');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Unable to resend OTP.');
         } finally {

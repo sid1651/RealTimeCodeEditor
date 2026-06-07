@@ -11,6 +11,11 @@ import DashboardPage from './pages/DashboardPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityProjectPage from './pages/CommunityProjectPage';
 import CommunityEmbedPage from './pages/CommunityEmbedPage';
+import RecentRoomsPage from './pages/RecentRoomsPage';
+import FavoritesPage from './pages/FavoritesPage';
+import SharedRoomsPage from './pages/SharedRoomsPage';
+import TrashPage from './pages/TrashPage';
+import SettingsPage from './pages/SettingsPage';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './context/AuthContext';
 
@@ -39,6 +44,11 @@ function App() {
           <Route path="/" element={<DashboardPage />} ></Route>
           <Route path="/landing" element ={<LandingPage/>}></Route>
           <Route path="/dashboard" element={<DashboardPage />} ></Route>
+          <Route path="/recent-rooms" element={<RecentRoomsPage />} ></Route>
+          <Route path="/favorites" element={<FavoritesPage />} ></Route>
+          <Route path="/shared" element={<SharedRoomsPage />} ></Route>
+          <Route path="/trash" element={<TrashPage />} ></Route>
+          <Route path="/settings" element={<SettingsPage />} ></Route>
           <Route path="/community" element={<CommunityPage />} ></Route>
           <Route path="/community/:roomId" element={<CommunityProjectPage />} ></Route>
           <Route path="/embed/:roomId" element={<CommunityEmbedPage />} ></Route>

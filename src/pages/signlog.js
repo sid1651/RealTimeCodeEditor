@@ -79,8 +79,6 @@ const handleSubmit = async (e) => {
         <div className="brand-sub">Real-time collaborative editor</div>
       </div>
     </div>
-
-    
   </header>
 
   <main className="auth-main">
