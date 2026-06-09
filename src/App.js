@@ -18,6 +18,8 @@ import TrashPage from './pages/TrashPage';
 import SettingsPage from './pages/SettingsPage';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicHomeRoute from './components/PublicHomeRoute';
 
 
 
@@ -41,18 +43,18 @@ function App() {
         <Routes>
           <Route path="/signup" element={<Signup/>}></Route>
           <Route path="/signin" element={<Signlog/>}></Route>
-          <Route path="/" element={<DashboardPage />} ></Route>
+          <Route path="/" element={<PublicHomeRoute />} ></Route>
           <Route path="/landing" element ={<LandingPage/>}></Route>
-          <Route path="/dashboard" element={<DashboardPage />} ></Route>
-          <Route path="/recent-rooms" element={<RecentRoomsPage />} ></Route>
-          <Route path="/favorites" element={<FavoritesPage />} ></Route>
-          <Route path="/shared" element={<SharedRoomsPage />} ></Route>
-          <Route path="/trash" element={<TrashPage />} ></Route>
-          <Route path="/settings" element={<SettingsPage />} ></Route>
-          <Route path="/community" element={<CommunityPage />} ></Route>
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} ></Route>
+          <Route path="/recent-rooms" element={<ProtectedRoute><RecentRoomsPage /></ProtectedRoute>} ></Route>
+          <Route path="/favorites" element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>} ></Route>
+          <Route path="/shared" element={<ProtectedRoute><SharedRoomsPage /></ProtectedRoute>} ></Route>
+          <Route path="/trash" element={<ProtectedRoute><TrashPage /></ProtectedRoute>} ></Route>
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} ></Route>
+          <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} ></Route>
           <Route path="/community/:roomId" element={<CommunityProjectPage />} ></Route>
           <Route path="/embed/:roomId" element={<CommunityEmbedPage />} ></Route>
-          <Route path="/home" element={<Home />} ></Route>
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} ></Route>
           <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
           <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
         </Routes>

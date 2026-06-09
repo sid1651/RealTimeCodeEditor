@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import LandingPage from '../pages/landingpage';
 
 const PublicHomeRoute = () => {
   const { isAuthenticated, isAuthLoading } = useAuth();
@@ -14,7 +13,7 @@ const PublicHomeRoute = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <LandingPage />;
+  return <Navigate to="/signup" replace />;
 };
 
 export default PublicHomeRoute;

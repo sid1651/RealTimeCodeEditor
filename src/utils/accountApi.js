@@ -4,3 +4,8 @@ export const updatePassword = async (payload) => {
   const { data } = await api.put('/api/auth/password', payload);
   return data;
 };
+
+export const updateProfile = async (payload) => {
+  const { data } = await api.put('/api/auth/me', payload);
+  return data;
+};

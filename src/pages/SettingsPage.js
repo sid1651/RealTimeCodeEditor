@@ -1,23 +1,65 @@
-import React, { useState } from 'react';
-import { ArrowLeft, LockKeyhole, Save } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, LockKeyhole, Save, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { updatePassword as updatePasswordRequest } from '../utils/accountApi';
+import {
+  updatePassword as updatePasswordRequest,
+  updateProfile as updateProfileRequest,
+} from '../utils/accountApi';
 import { useAuth } from '../context/AuthContext';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+  });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [isProfileSaving, setIsProfileSaving] = useState(false);
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
+
+  useEffect(() => {
+    setProfileForm({ name: user?.name || '' });
+  }, [user?.name]);
+
+  const handleProfileChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((current) => ({ ...current, [name]: value }));
+  };
 
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
     setPasswordForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const submitProfileUpdate = async (event) => {
+    event.preventDefault();
+
+    if (!profileForm.name.trim()) {
+      toast.error('Username is required.');
+      return;
+    }
+
+    setIsProfileSaving(true);
+
+    try {
+      const data = await updateProfileRequest({
+        name: profileForm.name.trim(),
+        email: user?.email || '',
+        phone: user?.phone || '',
+      });
+      updateUser(data.user);
+      setProfileForm({ name: data.user?.name || '' });
+      toast.success('Username updated.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to update username.');
+    } finally {
+      setIsProfileSaving(false);
+    }
   };
 
   const submitPasswordUpdate = async (event) => {
@@ -71,6 +113,37 @@ const SettingsPage = () => {
 
         <section className="workspaceStandaloneContent">
           <div className="settingsGrid workspaceSettingsGrid">
+            <article className="settingsCard workspaceStandaloneCard workspaceSettingsCard">
+              <div className="settingsCardHead">
+                <div>
+                  <h4>Profile</h4>
+                  <span>Update the username shown across your workspace.</span>
+                </div>
+                <UserRound size={20} />
+              </div>
+
+              <form className="settingsForm workspaceSettingsForm" onSubmit={submitProfileUpdate}>
+                <label className="dashboardFieldLabel workspaceFieldLabel">
+                  <span className="workspaceFieldTitle">Username</span>
+                  <span className="workspaceFieldHint">This name appears in rooms, dashboard, and shared spaces.</span>
+                  <input
+                    className="workspaceFieldInput"
+                    type="text"
+                    name="name"
+                    value={profileForm.name}
+                    onChange={handleProfileChange}
+                    placeholder="Your username"
+                    minLength={2}
+                    maxLength={80}
+                  />
+                </label>
+
+                <button type="submit" className="btn-primary settingsSubmitBtn workspaceSettingsSubmitBtn" disabled={isProfileSaving}>
+                  <Save size={16} /> {isProfileSaving ? 'Updating Username...' : 'Update Username'}
+                </button>
+              </form>
+            </article>
+
             <article className="settingsCard workspaceStandaloneCard workspaceSettingsCard">
               <div className="settingsCardHead">
                 <div>
