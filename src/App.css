@@ -2459,6 +2459,72 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.8rem;
 }
 
+.onboardingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+
+.onboardingBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.onboardingSpotlight {
+  position: fixed;
+  border-radius: 24px;
+  border: 1px solid rgba(103, 232, 249, 0.8);
+  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 0 40px rgba(103, 232, 249, 0.22);
+}
+
+.onboardingCard {
+  position: fixed;
+  z-index: 1;
+  padding: 20px;
+  border-radius: 22px;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  background: rgba(8, 15, 29, 0.96);
+  box-shadow: 0 26px 70px rgba(2, 6, 23, 0.48);
+  pointer-events: auto;
+}
+
+.onboardingStepLabel {
+  color: #67e8f9;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.onboardingCard h3 {
+  margin: 10px 0 8px;
+  color: #f8fafc;
+  font-size: 1.2rem;
+}
+
+.onboardingCard p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.onboardingActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.onboardingPrimaryActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .dashboardHeroActions {
   display: flex;
   flex-wrap: wrap;
@@ -3062,11 +3128,14 @@ h1, h2, h3, h4, h5, h6 {
 .communityGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch;
   gap: 18px;
 }
 
 .communityCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   overflow: hidden;
   border-radius: 24px;
   border: 1px solid rgba(148, 163, 184, 0.12);
@@ -3122,6 +3191,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .communityCardBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   padding: 16px;
 }
 
@@ -3153,6 +3225,11 @@ h1, h2, h3, h4, h5, h6 {
 .communityCardBody h3 {
   margin: 14px 0 0;
   font-size: 1.08rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .communityCardBody p {
@@ -3160,6 +3237,10 @@ h1, h2, h3, h4, h5, h6 {
   color: #94a3b8;
   font-size: 0.88rem;
   line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .communityMetaRow {
@@ -3182,7 +3263,8 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: auto;
+  padding-top: 14px;
 }
 
 .communityTags span {

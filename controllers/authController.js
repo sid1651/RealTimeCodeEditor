@@ -15,6 +15,7 @@ const sanitizeUser = (user) => ({
   phone: user.phone || '',
   avatar: user.avatar || '',
   emailVerified: Boolean(user.emailVerified),
+  hasCompletedOnboarding: user.hasCompletedOnboarding !== false,
   createdAt: user.createdAt,
 });
 
@@ -91,6 +92,7 @@ const registerUser = async (req, res) => {
       phone: phone.trim(),
       password: hashedPassword,
       emailVerified: false,
+      hasCompletedOnboarding: false,
     });
     applyVerificationOtp(user, otp);
 
@@ -170,6 +172,7 @@ const googleAuth = async (req, res) => {
     }
 
     let user = await User.findOne({ email: normalizedEmail });
+    const isNewUser = !user;
 
     if (!user) {
       user = new User({
@@ -179,6 +182,7 @@ const googleAuth = async (req, res) => {
         googleId: googleUser.sub || '',
         avatar: googleUser.picture || '',
         emailVerified: true,
+        hasCompletedOnboarding: false,
       });
     } else {
       user.emailVerified = true;
@@ -192,6 +196,7 @@ const googleAuth = async (req, res) => {
       message: 'Signed in with Google successfully.',
       token: generateToken(user._id.toString()),
       user: sanitizeUser(user),
+      isNewUser,
     });
   } catch (error) {
     return res.status(401).json({ message: 'Unable to sign in with Google.', details: error.message });
@@ -369,6 +374,22 @@ const updatePassword = async (req, res) => {
   }
 };
 
+const completeOnboarding = async (req, res) => {
+  try {
+    if (req.user.hasCompletedOnboarding === false) {
+      req.user.hasCompletedOnboarding = true;
+      await req.user.save();
+    }
+
+    return res.status(200).json({
+      message: 'Onboarding completed.',
+      user: sanitizeUser(req.user),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Unable to complete onboarding.', details: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -378,4 +399,5 @@ module.exports = {
   getCurrentUser,
   updateCurrentUser,
   updatePassword,
+  completeOnboarding,
 };

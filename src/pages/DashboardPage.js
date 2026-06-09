@@ -5,7 +5,7 @@ import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { deleteRoom as deleteRoomRequest, getUserRooms, updateRoom } from '../utils/roomApi';
-import { updatePassword as updatePasswordRequest } from '../utils/accountApi';
+import { completeOnboarding, updatePassword as updatePasswordRequest } from '../utils/accountApi';
 import { getRoomAnalytics } from '../utils/analyticsApi';
 import { getNotifications, markNotificationActionCompleted, markNotificationsRead } from '../utils/notificationApi';
 import { updateCommunityProject } from '../utils/communityApi';
@@ -22,6 +22,32 @@ const sidebarItems = [
 
 const ROOMS_PER_PAGE = 3;
 const NOTIFICATIONS_PER_PAGE = 5;
+const ONBOARDING_STEPS = [
+  {
+    id: 'sidebar',
+    targetId: 'sidebar',
+    title: 'Use the sidebar to move around',
+    description: 'Dashboard, community, favorites, shared rooms, and settings all live here for quick navigation.',
+  },
+  {
+    id: 'hero',
+    targetId: 'hero',
+    title: 'This is your workspace overview',
+    description: 'The hero section gives you a quick read on your workspace and shortcuts to create or reopen projects.',
+  },
+  {
+    id: 'create',
+    targetId: 'create',
+    title: 'Create a room from here',
+    description: 'Start a new collaborative room anytime with this button. That is usually the fastest way to begin.',
+  },
+  {
+    id: 'projects',
+    targetId: 'projects',
+    title: 'Your projects show up here',
+    description: 'Every room you create or reopen appears in this section, along with room actions like publish, star, and open.',
+  },
+];
 
 const formatRelativeTime = (timestamp) => {
   const value = new Date(timestamp).getTime();
@@ -40,10 +66,39 @@ const formatRelativeTime = (timestamp) => {
   return `${deltaDays}d ago`;
 };
 
+const getOnboardingCardStyle = (targetRect) => {
+  const cardWidth = Math.min(360, window.innerWidth - 32);
+
+  if (!targetRect) {
+    return {
+      top: Math.max(24, window.innerHeight / 2 - 140),
+      left: Math.max(16, (window.innerWidth - cardWidth) / 2),
+      width: cardWidth,
+    };
+  }
+
+  const spacing = 18;
+  const preferredTop = targetRect.bottom + spacing;
+  const fallbackTop = targetRect.top - 220;
+  const top = preferredTop + 220 < window.innerHeight
+    ? preferredTop
+    : Math.max(24, fallbackTop);
+  const left = Math.min(
+    Math.max(16, targetRect.left),
+    Math.max(16, window.innerWidth - cardWidth - 16),
+  );
+
+  return {
+    top,
+    left,
+    width: cardWidth,
+  };
+};
+
 const DashboardPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -70,6 +125,10 @@ const DashboardPage = () => {
   const [visibleNotificationCount, setVisibleNotificationCount] = useState(NOTIFICATIONS_PER_PAGE);
   const [roomPage, setRoomPage] = useState(0);
   const [roomPageDirection, setRoomPageDirection] = useState('down');
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [onboardingStepIndex, setOnboardingStepIndex] = useState(0);
+  const [isCompletingOnboarding, setIsCompletingOnboarding] = useState(false);
+  const [onboardingTargetRect, setOnboardingTargetRect] = useState(null);
 
   const greetingName = user?.name?.split(' ')[0] || 'Builder';
   const greetingText = `welcome_back --user ${greetingName.toLowerCase()}`;
@@ -201,6 +260,22 @@ const DashboardPage = () => {
     return () => window.clearInterval(timer);
   }, [greetingText]);
 
+  useEffect(() => {
+    if (user?.hasCompletedOnboarding === false && currentSection !== 'dashboard') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [currentSection, navigate, user?.hasCompletedOnboarding]);
+
+  useEffect(() => {
+    if (user?.hasCompletedOnboarding === false && currentSection === 'dashboard') {
+      setIsOnboardingOpen(true);
+      setOnboardingStepIndex(0);
+      return;
+    }
+
+    setIsOnboardingOpen(false);
+  }, [currentSection, user?.hasCompletedOnboarding]);
+
   const filteredRooms = useMemo(() => {
     const normalized = searchQuery.trim().toLowerCase();
     let source = [...rooms];
@@ -236,10 +311,82 @@ const DashboardPage = () => {
   const visibleRooms = hasRoomCarousel
     ? filteredRooms.slice(roomPage * ROOMS_PER_PAGE, (roomPage + 1) * ROOMS_PER_PAGE)
     : filteredRooms;
+  const currentOnboardingStep = ONBOARDING_STEPS[onboardingStepIndex];
+  const onboardingCardStyle = useMemo(
+    () => getOnboardingCardStyle(onboardingTargetRect),
+    [onboardingTargetRect],
+  );
 
   useEffect(() => {
     setRoomPage((current) => Math.min(current, totalRoomPages - 1));
   }, [totalRoomPages]);
+
+  useEffect(() => {
+    if (!isOnboardingOpen || !currentOnboardingStep) {
+      setOnboardingTargetRect(null);
+      return undefined;
+    }
+
+    const updateSpotlight = () => {
+      const target = document.querySelector(`[data-tour-id="${currentOnboardingStep.targetId}"]`);
+
+      if (!target) {
+        setOnboardingTargetRect(null);
+        return;
+      }
+
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      const rect = target.getBoundingClientRect();
+      setOnboardingTargetRect({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+      });
+    };
+
+    updateSpotlight();
+    window.addEventListener('resize', updateSpotlight);
+    window.addEventListener('scroll', updateSpotlight, true);
+
+    return () => {
+      window.removeEventListener('resize', updateSpotlight);
+      window.removeEventListener('scroll', updateSpotlight, true);
+    };
+  }, [currentOnboardingStep, isOnboardingOpen, rooms.length]);
+
+  const finishOnboarding = useCallback(async () => {
+    if (isCompletingOnboarding) {
+      return;
+    }
+
+    setIsCompletingOnboarding(true);
+    try {
+      const data = await completeOnboarding();
+      updateUser(data.user);
+      setIsOnboardingOpen(false);
+      toast.success('You are all set. Enjoy building in Kodikos.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Unable to save onboarding progress.');
+    } finally {
+      setIsCompletingOnboarding(false);
+    }
+  }, [isCompletingOnboarding, updateUser]);
+
+  const goToNextOnboardingStep = () => {
+    if (onboardingStepIndex >= ONBOARDING_STEPS.length - 1) {
+      finishOnboarding();
+      return;
+    }
+
+    setOnboardingStepIndex((current) => current + 1);
+  };
+
+  const goToPreviousOnboardingStep = () => {
+    setOnboardingStepIndex((current) => Math.max(0, current - 1));
+  };
 
   const showPreviousRoomPage = () => {
     setRoomPageDirection('up');
@@ -490,7 +637,7 @@ const DashboardPage = () => {
 
   return (
     <div className="dashboardPage">
-      <aside className="dashboardSidebar">
+      <aside className="dashboardSidebar" data-tour-id="sidebar">
         <div className="dashboardBrand">
           <img src="/logo-dark.png" alt="Kodikos logo" />
           <div>
@@ -609,14 +756,14 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
-            <button type="button" className="btn-primary dashboardCreateBtn" onClick={() => navigate('/home')}>
+            <button type="button" className="btn-primary dashboardCreateBtn" onClick={() => navigate('/home')} data-tour-id="create">
               <Plus size={18} /> Create Room
             </button>
           </div>
         </header>
 
         <main className="dashboardContent">
-          <section className="dashboardHero">
+          <section className="dashboardHero" data-tour-id="hero">
             <div>
               <p className="dashboardEyebrow">Developer Workspace</p>
               <div className="dashboardTerminalGreeting" aria-hidden="true">
@@ -704,7 +851,7 @@ const DashboardPage = () => {
               </div>
             </section>
           ) : (
-          <section className="dashboardRoomsSection">
+          <section className="dashboardRoomsSection" data-tour-id="projects">
             <div className="dashboardPanelHead">
               <div>
                 <h3>{sectionMeta.title}</h3>
@@ -891,6 +1038,48 @@ const DashboardPage = () => {
           </form>
         </div>
       )}
+
+      {isOnboardingOpen && currentOnboardingStep ? (
+        <div className="onboardingOverlay" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+          <div className="onboardingBackdrop" />
+          {onboardingTargetRect ? (
+            <div
+              className="onboardingSpotlight"
+              style={{
+                top: Math.max(8, onboardingTargetRect.top - 8),
+                left: Math.max(8, onboardingTargetRect.left - 8),
+                width: onboardingTargetRect.width + 16,
+                height: onboardingTargetRect.height + 16,
+              }}
+            />
+          ) : null}
+          <div className="onboardingCard" style={onboardingCardStyle}>
+            <div className="onboardingStepLabel">
+              Step {onboardingStepIndex + 1} of {ONBOARDING_STEPS.length}
+            </div>
+            <h3 id="onboarding-title">{currentOnboardingStep.title}</h3>
+            <p>{currentOnboardingStep.description}</p>
+            <div className="onboardingActions">
+              <button type="button" className="btn-outline" onClick={finishOnboarding} disabled={isCompletingOnboarding}>
+                Skip Tour
+              </button>
+              <div className="onboardingPrimaryActions">
+                <button
+                  type="button"
+                  className="btn-outline"
+                  onClick={goToPreviousOnboardingStep}
+                  disabled={onboardingStepIndex === 0 || isCompletingOnboarding}
+                >
+                  Back
+                </button>
+                <button type="button" className="btn-primary" onClick={goToNextOnboardingStep} disabled={isCompletingOnboarding}>
+                  {onboardingStepIndex === ONBOARDING_STEPS.length - 1 ? 'Finish' : 'Next'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

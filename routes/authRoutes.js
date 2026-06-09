@@ -8,6 +8,7 @@ const {
   getCurrentUser,
   updateCurrentUser,
   updatePassword,
+  completeOnboarding,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -21,5 +22,6 @@ router.post('/resend-registration-otp', resendRegistrationOtp);
 router.get('/me', protect, getCurrentUser);
 router.put('/me', protect, updateCurrentUser);
 router.put('/password', protect, updatePassword);
+router.post('/onboarding/complete', protect, completeOnboarding);
 
 module.exports = router;

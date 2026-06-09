@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    hasCompletedOnboarding: {
+      type: Boolean,
+      default: true,
+    },
     verificationOtpHash: {
       type: String,
       select: false,
