@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 const RoomCodeLoader = ({
   title = 'Opening room',
@@ -11,27 +11,23 @@ const RoomCodeLoader = ({
 }) => (
   <main className="roomCodeLoaderPage">
     <section className="roomCodeLoaderCard">
-      <div className="roomCodeLoaderAura" aria-hidden="true" />
-      <div className="roomCodeLoaderOrb" aria-hidden="true">
-        <span className="roomCodeLoaderRing roomCodeLoaderRingOne" />
-        <span className="roomCodeLoaderRing roomCodeLoaderRingTwo" />
-        <span className="roomCodeLoaderCore">
-          <Sparkles size={34} />
-        </span>
-        <span className="roomCodeLoaderDot roomCodeLoaderDotOne" />
-        <span className="roomCodeLoaderDot roomCodeLoaderDotTwo" />
-        <span className="roomCodeLoaderDot roomCodeLoaderDotThree" />
+      <div className="roomCodeLoaderHeader">
+        <div className="roomCodeLoaderBadge" aria-hidden="true">
+          <span className="roomCodeLoaderSpinner" />
+        </div>
+        <p className="roomCodeLoaderEyebrow">{error ? 'Room paused' : status}</p>
       </div>
 
-      <p className="roomCodeLoaderEyebrow">{error ? 'Room paused' : status}</p>
       <h1>{error ? 'Could not open this room yet' : title}</h1>
       <p className="roomCodeLoaderText">{error || subtitle}</p>
 
       {!error && (
-        <div className="roomCodeLoaderSteps" aria-label="Room is loading">
-          <span />
-          <span />
-          <span />
+        <div className="roomCodeLoaderProgress" aria-label="Room is loading">
+          <span className="roomCodeLoaderProgressBar" />
+          <div className="roomCodeLoaderMeta">
+            <span>Syncing room data</span>
+            <span>Please wait</span>
+          </div>
         </div>
       )}
 
