@@ -9,6 +9,7 @@ import { completeOnboarding, updatePassword as updatePasswordRequest } from '../
 import { getRoomAnalytics } from '../utils/analyticsApi';
 import { getNotifications, markNotificationActionCompleted, markNotificationsRead } from '../utils/notificationApi';
 import { updateCommunityProject } from '../utils/communityApi';
+import { getRoomLanguageLabel, getRoomRoute } from '../utils/roomLanguage';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Sparkles, path: '/dashboard' },
@@ -399,7 +400,7 @@ const DashboardPage = () => {
   };
 
   const openRoom = async (room) => {
-    const destination = room.language === 'react' ? `/react-studio/${room.roomId}` : `/editor/${room.roomId}`;
+    const destination = getRoomRoute(room.language, room.roomId);
     navigate(destination, {
       state: {
         username: user?.name || 'Anonymous',
@@ -425,10 +426,8 @@ const DashboardPage = () => {
       console.error('Unable to mark notification action as completed', error);
     }
 
-    const roomLanguage = notification.metadata?.roomLanguage === 'react' ? 'react' : 'vanilla';
-    const destination = roomLanguage === 'react'
-      ? `/react-studio/${notification.roomId}`
-      : `/editor/${notification.roomId}`;
+    const roomLanguage = notification.metadata?.roomLanguage || 'vanilla';
+    const destination = getRoomRoute(roomLanguage, notification.roomId);
 
     setIsNotificationsOpen(false);
     navigate(destination, {
@@ -903,7 +902,7 @@ const DashboardPage = () => {
                     <div className="roomCardGlow" />
                     <div className="roomCardHeader">
                       <div>
-                        <span className={`roomLanguagePill ${room.language}`}>{room.language === 'react' ? 'React Studio' : 'Vanilla Web'}</span>
+                        <span className={`roomLanguagePill ${room.language}`}>{getRoomLanguageLabel(room.language)}</span>
                         <h4>{room.title}</h4>
                       </div>
                       <button type="button" className="roomMenuBtn" onClick={() => setEditingRoom(room) || setEditingTitle(room.title)}>

@@ -8,6 +8,7 @@ import { Copy, Eye, KeyRound, LogIn, PencilLine, User } from 'lucide-react';
 import { createRoom } from '../utils/roomApi';
 import { useAuth } from '../context/AuthContext';
 import { getApiBaseUrlCandidates, getApiBaseUrl } from '../utils/api';
+import { getRoomJoinLabel, getRoomRoute } from '../utils/roomLanguage';
 
 const Home = () => {
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ const Home = () => {
             setRole(inviteRole);
         }
 
-        if (inviteMode === 'react' || inviteMode === 'vanilla') {
+        if (inviteMode === 'react' || inviteMode === 'vanilla' || inviteMode === 'python') {
             setMode(inviteMode);
         }
     }, [location.search]);
@@ -73,7 +74,7 @@ const Home = () => {
             });
 
             const data = await createRoom({
-                title: `New ${mode === 'react' ? 'React' : 'Vanilla'} Project`,
+                title: `New ${mode === 'react' ? 'React' : mode === 'python' ? 'Python' : 'Vanilla'} Project`,
                 language: mode,
                 privacy: 'shared',
                 template: 'blank'
@@ -109,7 +110,7 @@ const Home = () => {
             return;
         }
 
-        const destination = mode === 'react' ? `/react-studio/${roomId}` : `/editor/${roomId}`;
+        const destination = getRoomRoute(mode, roomId);
 
         navigate(destination, {
                 state: {
@@ -191,6 +192,7 @@ const Home = () => {
                         >
                             <option value="vanilla">HTML, CSS and JavaScript</option>
                             <option value="react">React Studio</option>
+                            <option value="python">Python Room</option>
                         </select>
                     </div>
                     <p className='roleHint'>
@@ -198,10 +200,12 @@ const Home = () => {
                             ? 'Spectators can join and watch changes live, but cannot edit the code.'
                             : mode === 'react'
                                 ? 'Editors can build React components together with a live JSX and CSS preview.'
+                                : mode === 'python'
+                                    ? 'Editors can write Python, share stdin, and run code together in a live terminal.'
                                 : 'Editors can type, run JavaScript, and collaborate live in the room.'}
                     </p>
                     <button onClick={joinRoom} className='btn-primary joinBtn'>
-                        <LogIn size={18} /> Join {mode === 'react' ? 'React Studio' : 'Editor'} as {role === 'spectator' ? 'Spectator' : 'Editor'}
+                        <LogIn size={18} /> Join {getRoomJoinLabel(mode)} as {role === 'spectator' ? 'Spectator' : 'Editor'}
                     </button>
                     {inviteLinks && (
                         <div className="invitePanel">

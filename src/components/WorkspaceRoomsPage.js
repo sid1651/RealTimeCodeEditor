@@ -5,6 +5,7 @@ import { v4 as uuidV4 } from 'uuid';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { deleteRoom as deleteRoomRequest, getUserRooms, updateRoom } from '../utils/roomApi';
+import { getRoomLanguageLabel, getRoomRoute } from '../utils/roomLanguage';
 
 const iconMap = {
   recent: Clock3,
@@ -80,7 +81,7 @@ const WorkspaceRoomsPage = ({
   }, [filterRooms, rooms, searchQuery]);
 
   const openRoom = (room) => {
-    const destination = room.language === 'react' ? `/react-studio/${room.roomId}` : `/editor/${room.roomId}`;
+    const destination = getRoomRoute(room.language, room.roomId);
     navigate(destination, {
       state: {
         username: user?.name || 'Anonymous',
@@ -184,7 +185,7 @@ const WorkspaceRoomsPage = ({
                   <div className="roomCardGlow" />
                   <div className="roomCardHeader">
                     <div>
-                      <span className={`roomLanguagePill ${room.language}`}>{room.language === 'react' ? 'React Studio' : 'Vanilla Web'}</span>
+                      <span className={`roomLanguagePill ${room.language}`}>{getRoomLanguageLabel(room.language)}</span>
                       <h4>{room.title}</h4>
                     </div>
                   </div>

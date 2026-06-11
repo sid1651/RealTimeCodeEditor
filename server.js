@@ -53,15 +53,71 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/rooms', roomRoutes);
 
 app.post('/api/execute', async (req, res) => {
+  const language = req.body?.language === 'python' ? 'python' : 'javascript';
   const source = typeof req.body?.code === 'string' ? req.body.code : '';
+  const input = typeof req.body?.input === 'string' ? req.body.input : '';
 
   if (!source.trim()) {
     return res.status(400).json({
-      message: 'JavaScript code is required to run the program.',
+      message: language === 'python'
+        ? 'Python code is required to run the program.'
+        : 'JavaScript code is required to run the program.',
     });
   }
 
   try {
+    if (language === 'python') {
+      const onlineCompilerApiKey = process.env.ONLINE_COMPILER_API_KEY;
+      const onlineCompilerUrl = process.env.ONLINE_COMPILER_URL || 'https://api.onlinecompiler.io/api/run-code-sync/';
+
+      if (!onlineCompilerApiKey) {
+        return res.status(500).json({
+          message: 'ONLINE_COMPILER_API_KEY is missing on the server.',
+        });
+      }
+
+      const executionResponse = await fetch(onlineCompilerUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: onlineCompilerApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          compiler: req.body?.compiler || 'python-3.14',
+          code: source,
+          input,
+        }),
+      });
+
+      const rawBody = await executionResponse.text();
+      let payload = {};
+
+      try {
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        payload = { message: rawBody || 'Execution service returned an unreadable response.' };
+      }
+
+      if (!executionResponse.ok) {
+        return res.status(executionResponse.status).json({
+          message: payload?.message || 'Execution service failed to run the code.',
+          details: payload,
+        });
+      }
+
+      return res.json({
+        output: payload?.output || '',
+        error: payload?.error || '',
+        status: payload?.status || 'unknown',
+        exitCode: payload?.exit_code,
+        signal: payload?.signal ?? null,
+        time: payload?.time || '',
+        total: payload?.total || '',
+        memory: payload?.memory || '',
+        details: payload,
+      });
+    }
+
     const executionResponse = await fetch('https://emacs.piston.rs/api/v2/execute', {
       method: 'POST',
       headers: {
@@ -99,6 +155,13 @@ app.post('/api/execute', async (req, res) => {
 
     return res.json({
       output,
+      error: payload?.compile?.stderr || payload?.run?.stderr || '',
+      status: 'success',
+      exitCode: payload?.run?.code ?? 0,
+      signal: payload?.run?.signal ?? null,
+      time: '',
+      total: '',
+      memory: '',
       details: payload,
     });
   } catch (error) {
@@ -411,8 +474,8 @@ function setupNamespace(namespace) {
       socket.in(roomId).emit('receive-message', messagePayload);
     });
 
-    socket.on('code-output', ({ roomId, output, username }) => {
-      socket.in(roomId).emit('code-output', { output, username });
+    socket.on('code-output', ({ roomId, ...payload }) => {
+      socket.in(roomId).emit('code-output', payload);
     });
 
     socket.on('disconnecting', () => {

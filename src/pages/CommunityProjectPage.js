@@ -11,6 +11,7 @@ import {
   toggleCommunityProjectLike,
 } from '../utils/communityApi';
 import { getCommunityPreviewSrcDoc } from '../utils/communityPreview';
+import { getRoomRoute } from '../utils/roomLanguage';
 
 const formatCount = (value) => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value || 0);
 
@@ -80,9 +81,7 @@ const CommunityProjectPage = () => {
       return;
     }
 
-    const destination = project.language === 'react'
-      ? `/react-studio/${project.roomId}`
-      : `/editor/${project.roomId}`;
+    const destination = getRoomRoute(project.language, project.roomId);
 
     navigate(destination, {
       state: {
@@ -157,9 +156,7 @@ const CommunityProjectPage = () => {
       const nextRoom = data.room;
       toast.success(data.message || 'Remix created.');
 
-      const destination = nextRoom.language === 'react'
-        ? `/react-studio/${nextRoom.roomId}`
-        : `/editor/${nextRoom.roomId}`;
+      const destination = getRoomRoute(nextRoom.language, nextRoom.roomId);
 
       navigate(destination, {
         state: {

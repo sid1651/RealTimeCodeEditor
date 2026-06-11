@@ -8,6 +8,18 @@ import {
   toggleCommunityProjectLike,
 } from '../utils/communityApi';
 import { getCommunityPreviewSrcDoc } from '../utils/communityPreview';
+import { getRoomLanguageLabel } from '../utils/roomLanguage';
+
+const getMostCommonCommunityLanguage = (projects) => {
+  const counts = projects.reduce((result, project) => {
+    const key = project.language || 'vanilla';
+    result[key] = (result[key] || 0) + 1;
+    return result;
+  }, {});
+
+  const [topLanguage] = Object.entries(counts).sort(([, leftCount], [, rightCount]) => rightCount - leftCount)[0] || ['vanilla'];
+  return getRoomLanguageLabel(topLanguage);
+};
 
 const formatCount = (value) => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value || 0);
 
@@ -97,7 +109,7 @@ const CommunityPage = () => {
           </article>
           <article>
             <span>Most Common</span>
-            <strong>{projects.filter((project) => project.language === 'react').length > projects.filter((project) => project.language === 'vanilla').length ? 'React' : 'Vanilla'}</strong>
+            <strong>{getMostCommonCommunityLanguage(projects)}</strong>
           </article>
           <article>
             <span>Vibe</span>
@@ -144,7 +156,7 @@ const CommunityPage = () => {
                 <div className="communityCardBody">
                   <div className="communityCardTopline">
                     <span className={`roomLanguagePill ${project.language}`}>
-                      {project.language === 'react' ? 'React Studio' : 'Vanilla Web'}
+                      {getRoomLanguageLabel(project.language)}
                     </span>
                     <button
                       type="button"

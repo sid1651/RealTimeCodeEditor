@@ -1784,6 +1784,142 @@ h1, h2, h3, h4, h5, h6 {
   border: none;
 }
 
+.pythonTerminalShell {
+  flex: 0 0 31%;
+  width: 31%;
+  min-width: 280px;
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 24%),
+    linear-gradient(180deg, #0b1020 0%, #0f172a 100%);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.pythonTerminalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px !important;
+  background: rgba(5, 10, 20, 0.72) !important;
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12) !important;
+  text-align: left !important;
+}
+
+.pythonTerminalTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pythonTerminalMeta {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.pythonTerminalMetaText {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.pythonTerminalDots {
+  display: inline-flex;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.pythonTerminalDots span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.pythonTerminalDots span:nth-child(1) {
+  background: #f87171;
+}
+
+.pythonTerminalDots span:nth-child(2) {
+  background: #fbbf24;
+}
+
+.pythonTerminalDots span:nth-child(3) {
+  background: #34d399;
+}
+
+.pythonTerminalInputWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.pythonTerminalInputLabel {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pythonTerminalInput {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.82);
+  color: #dbeafe;
+  padding: 12px;
+  font: 13px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  outline: none;
+}
+
+.pythonTerminalInput:focus {
+  border-color: rgba(96, 165, 250, 0.34);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+}
+
+.pythonTerminalInput::placeholder {
+  color: #64748b;
+}
+
+.pythonTerminalInput[readonly] {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.pythonTerminalOutput {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pythonTerminalPrompt {
+  padding: 10px 14px 0;
+  color: #34d399;
+  font: 12px/1.4 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.pythonTerminalContent {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 14px 16px;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  font: 12.5px/1.55 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
 @media (max-width: 1100px) {
   .editorTopbar {
     padding: 14px 16px;
@@ -1807,6 +1943,11 @@ h1, h2, h3, h4, h5, h6 {
   .previwcolapsstyle {
     min-width: 0;
     min-height: 320px;
+  }
+
+  .pythonTerminalShell {
+    width: 100%;
+    flex-basis: auto;
   }
 }
 
@@ -2741,6 +2882,11 @@ h1, h2, h3, h4, h5, h6 {
 .roomLanguagePill.react {
   background: rgba(34, 211, 238, 0.14);
   color: #67e8f9;
+}
+
+.roomLanguagePill.python {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
 }
 
 .roomMenuBtn,

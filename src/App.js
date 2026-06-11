@@ -7,6 +7,7 @@ import LandingPage from './pages/landingpage';
 import Signlog from './pages/signlog';
 import Signup from './pages/signup';
 import ReactStudioPage from './pages/ReactStudioPage';
+import PythonRoomPage from './pages/PythonRoomPage';
 import DashboardPage from './pages/DashboardPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityProjectPage from './pages/CommunityProjectPage';
@@ -56,6 +57,7 @@ function App() {
           <Route path="/embed/:roomId" element={<CommunityEmbedPage />} ></Route>
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} ></Route>
           <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
+          <Route path="/python-room/:roomId" element={<PythonRoomPage />} ></Route>
           <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
         </Routes>
       </BrowserRouter>
