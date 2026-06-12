@@ -53,20 +53,28 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/rooms', roomRoutes);
 
 app.post('/api/execute', async (req, res) => {
-  const language = req.body?.language === 'python' ? 'python' : 'javascript';
+  const compiledLanguageMap = {
+    python: 'python-3.14',
+    c: 'gcc-15',
+    cpp: 'g++-15',
+  };
+  const requestedLanguage = typeof req.body?.language === 'string' ? req.body.language : 'javascript';
+  const language = Object.prototype.hasOwnProperty.call(compiledLanguageMap, requestedLanguage)
+    ? requestedLanguage
+    : 'javascript';
   const source = typeof req.body?.code === 'string' ? req.body.code : '';
   const input = typeof req.body?.input === 'string' ? req.body.input : '';
 
   if (!source.trim()) {
     return res.status(400).json({
-      message: language === 'python'
-        ? 'Python code is required to run the program.'
+      message: language !== 'javascript'
+        ? `${language === 'cpp' ? 'C++' : language.toUpperCase()} code is required to run the program.`
         : 'JavaScript code is required to run the program.',
     });
   }
 
   try {
-    if (language === 'python') {
+    if (language !== 'javascript') {
       const onlineCompilerApiKey = process.env.ONLINE_COMPILER_API_KEY;
       const onlineCompilerUrl = process.env.ONLINE_COMPILER_URL || 'https://api.onlinecompiler.io/api/run-code-sync/';
 
@@ -83,7 +91,7 @@ app.post('/api/execute', async (req, res) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          compiler: req.body?.compiler || 'python-3.14',
+          compiler: req.body?.compiler || compiledLanguageMap[language],
           code: source,
           input,
         }),

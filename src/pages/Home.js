@@ -34,7 +34,7 @@ const Home = () => {
             setRole(inviteRole);
         }
 
-        if (inviteMode === 'react' || inviteMode === 'vanilla' || inviteMode === 'python') {
+        if (inviteMode === 'react' || inviteMode === 'vanilla' || inviteMode === 'python' || inviteMode === 'c' || inviteMode === 'cpp') {
             setMode(inviteMode);
         }
     }, [location.search]);
@@ -74,7 +74,7 @@ const Home = () => {
             });
 
             const data = await createRoom({
-                title: `New ${mode === 'react' ? 'React' : mode === 'python' ? 'Python' : 'Vanilla'} Project`,
+                title: `New ${mode === 'react' ? 'React' : mode === 'python' ? 'Python' : mode === 'c' ? 'C' : mode === 'cpp' ? 'C++' : 'Vanilla'} Project`,
                 language: mode,
                 privacy: 'shared',
                 template: 'blank'
@@ -193,6 +193,8 @@ const Home = () => {
                             <option value="vanilla">HTML, CSS and JavaScript</option>
                             <option value="react">React Studio</option>
                             <option value="python">Python Room</option>
+                            <option value="c">C Room</option>
+                            <option value="cpp">C++ Room</option>
                         </select>
                     </div>
                     <p className='roleHint'>
@@ -202,6 +204,10 @@ const Home = () => {
                                 ? 'Editors can build React components together with a live JSX and CSS preview.'
                                 : mode === 'python'
                                     ? 'Editors can write Python, share stdin, and run code together in a live terminal.'
+                                : mode === 'c'
+                                    ? 'Editors can collaborate on C code, share stdin, and run terminal-style programs together.'
+                                : mode === 'cpp'
+                                    ? 'Editors can collaborate on C++ code, share stdin, and run terminal-style programs together.'
                                 : 'Editors can type, run JavaScript, and collaborate live in the room.'}
                     </p>
                     <button onClick={joinRoom} className='btn-primary joinBtn'>

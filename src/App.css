@@ -2889,6 +2889,16 @@ h1, h2, h3, h4, h5, h6 {
   color: #93c5fd;
 }
 
+.roomLanguagePill.c {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fcd34d;
+}
+
+.roomLanguagePill.cpp {
+  background: rgba(167, 139, 250, 0.16);
+  color: #ddd6fe;
+}
+
 .roomMenuBtn,
 .dashboardMiniBtn {
   border: 1px solid rgba(148, 163, 184, 0.12);

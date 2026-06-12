@@ -4,6 +4,10 @@ export const getRoomRoute = (language = 'vanilla', roomId = ':roomId') => {
       return `/react-studio/${roomId}`;
     case 'python':
       return `/python-room/${roomId}`;
+    case 'c':
+      return `/c-room/${roomId}`;
+    case 'cpp':
+      return `/cpp-room/${roomId}`;
     case 'vanilla':
     default:
       return `/editor/${roomId}`;
@@ -11,7 +15,7 @@ export const getRoomRoute = (language = 'vanilla', roomId = ':roomId') => {
 };
 
 export const getRoomInviteMode = (language = 'vanilla') => {
-  if (language === 'react' || language === 'python') {
+  if (language === 'react' || language === 'python' || language === 'c' || language === 'cpp') {
     return language;
   }
 
@@ -24,6 +28,10 @@ export const getRoomLanguageLabel = (language = 'vanilla') => {
       return 'React Studio';
     case 'python':
       return 'Python Room';
+    case 'c':
+      return 'C Room';
+    case 'cpp':
+      return 'C++ Room';
     case 'vanilla':
     default:
       return 'Vanilla Web';
@@ -36,6 +44,10 @@ export const getRoomJoinLabel = (language = 'vanilla') => {
       return 'React Studio';
     case 'python':
       return 'Python Room';
+    case 'c':
+      return 'C Room';
+    case 'cpp':
+      return 'C++ Room';
     case 'vanilla':
     default:
       return 'Editor';

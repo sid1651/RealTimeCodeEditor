@@ -8,6 +8,8 @@ import Signlog from './pages/signlog';
 import Signup from './pages/signup';
 import ReactStudioPage from './pages/ReactStudioPage';
 import PythonRoomPage from './pages/PythonRoomPage';
+import CRoomPage from './pages/CRoomPage';
+import CppRoomPage from './pages/CppRoomPage';
 import DashboardPage from './pages/DashboardPage';
 import CommunityPage from './pages/CommunityPage';
 import CommunityProjectPage from './pages/CommunityProjectPage';
@@ -58,6 +60,8 @@ function App() {
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} ></Route>
           <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
           <Route path="/python-room/:roomId" element={<PythonRoomPage />} ></Route>
+          <Route path="/c-room/:roomId" element={<CRoomPage />} ></Route>
+          <Route path="/cpp-room/:roomId" element={<CppRoomPage />} ></Route>
           <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
         </Routes>
       </BrowserRouter>

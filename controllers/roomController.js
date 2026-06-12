@@ -14,6 +14,14 @@ const roomTemplates = {
       python: 'print("Hello, World!")',
       pythonInput: '',
     },
+    c: {
+      c: '#include <stdio.h>\n\nint main(void) {\n  printf("Hello, World!\\n");\n  return 0;\n}\n',
+      cInput: '',
+    },
+    cpp: {
+      cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n  cout << "Hello, World!" << \'\\n\';\n  return 0;\n}\n',
+      cppInput: '',
+    },
     react: {
       react: `function App() {\n  const [loveCount, setLoveCount] = useState(128);\n  const features = [\n    "Real-time editing with your team",\n    "Fast JSX and CSS experiments",\n    "A workspace that keeps your ideas together"\n  ];\n\n  return (\n    <main className="love-shell">\n      <section className="love-hero">\n        <div className="love-copy">\n          <p className="love-kicker">Made with love in Kodikos</p>\n          <h1>Build together, ship together, and enjoy the process.</h1>\n          <p className="love-lede">\n            This project is made with love for collaborative builders who want a beautiful place to sketch, test, and refine React ideas live.\n          </p>\n\n          <div className="love-actions">\n            <button className="love-button" onClick={() => setLoveCount((value) => value + 1)}>\n              Send more love\n            </button>\n            <span className="love-pill">{loveCount} creators inspired</span>\n          </div>\n\n          <div className="love-metrics">\n            <article>\n              <strong>Live</strong>\n              <span>Edit React and CSS side by side with instant feedback.</span>\n            </article>\n            <article>\n              <strong>Shared</strong>\n              <span>Create together without losing the flow of the idea.</span>\n            </article>\n            <article>\n              <strong>Loved</strong>\n              <span>A starter page that feels crafted instead of empty.</span>\n            </article>\n          </div>\n        </div>\n\n        <aside className="love-panel">\n          <div className="panel-orbit panel-orbit-one"></div>\n          <div className="panel-orbit panel-orbit-two"></div>\n\n          <div className="panel-badge">Project starter</div>\n\n          <div className="panel-card">\n            <p className="panel-label">Why this exists</p>\n            <h2>A collaborative studio for ideas that deserve a nicer beginning.</h2>\n            <p className="panel-text">\n              Start with a thoughtful default, then remix every part of it into your own product, landing page, or experiment.\n            </p>\n          </div>\n\n          <div className="feature-list">\n            {features.map((item, index) => (\n              <div className="feature-tile" key={item}>\n                <span>0{index + 1}</span>\n                <div>\n                  <strong>{item}</strong>\n                </div>\n              </div>\n            ))}\n          </div>\n        </aside>\n      </section>\n    </main>\n  );\n}`,
       reactCss: `:root {\n  --night: #07111a;\n  --navy: #10243a;\n  --rose: #ff7b72;\n  --peach: #ffb36b;\n  --cream: #fff7ef;\n  --mist: #c9d7e6;\n  --glass: rgba(9, 17, 27, 0.72);\n  --line: rgba(255, 255, 255, 0.1);\n  --shadow: 0 30px 90px rgba(0, 0, 0, 0.34);\n}\n\n* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n}\n\n.love-shell {\n  min-height: 100vh;\n  padding: 28px;\n  display: grid;\n  place-items: center;\n  background:\n    radial-gradient(circle at top left, rgba(255, 123, 114, 0.24), transparent 26%),\n    radial-gradient(circle at 80% 20%, rgba(255, 179, 107, 0.18), transparent 20%),\n    linear-gradient(145deg, var(--night) 0%, var(--navy) 55%, #050a11 100%);\n  color: var(--cream);\n  font-family: "Inter", "Segoe UI", sans-serif;\n}\n\n.love-hero {\n  width: min(1120px, 100%);\n  display: grid;\n  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);\n  gap: 26px;\n  align-items: center;\n}\n\n.love-copy,\n.love-panel {\n  position: relative;\n  overflow: hidden;\n  border: 1px solid var(--line);\n  border-radius: 34px;\n  background: var(--glass);\n  backdrop-filter: blur(20px);\n  box-shadow: var(--shadow);\n}\n\n.love-copy {\n  padding: 42px;\n}\n\n.love-copy::after,\n.love-panel::after {\n  content: "";\n  position: absolute;\n  inset: 0;\n  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 30%);\n  pointer-events: none;\n}\n\n.love-kicker,\n.panel-label,\n.panel-badge {\n  margin: 0;\n  letter-spacing: 0.16em;\n  text-transform: uppercase;\n  font-size: 0.78rem;\n  font-weight: 700;\n}\n\n.love-kicker {\n  color: #ffc9b6;\n}\n\n.love-copy h1 {\n  margin: 16px 0 0;\n  max-width: 11ch;\n  font-family: "Avenir Next Condensed", "Arial Narrow", sans-serif;\n  font-size: clamp(3rem, 7vw, 5.6rem);\n  line-height: 0.92;\n  letter-spacing: -0.05em;\n}\n\n.love-lede {\n  max-width: 35rem;\n  margin: 20px 0 0;\n  color: var(--mist);\n  font-size: 1.06rem;\n  line-height: 1.8;\n}\n\n.love-actions {\n  margin-top: 30px;\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: 14px;\n}\n\n.love-button {\n  border: none;\n  border-radius: 999px;\n  padding: 14px 22px;\n  background: linear-gradient(135deg, var(--rose), var(--peach));\n  color: #24130f;\n  font-size: 0.98rem;\n  font-weight: 800;\n  cursor: pointer;\n  box-shadow: 0 18px 40px rgba(255, 123, 114, 0.28);\n  transition: transform 180ms ease, box-shadow 180ms ease;\n}\n\n.love-button:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 24px 44px rgba(255, 123, 114, 0.34);\n}\n\n.love-pill {\n  padding: 10px 15px;\n  border-radius: 999px;\n  border: 1px solid rgba(255, 255, 255, 0.12);\n  background: rgba(255, 255, 255, 0.08);\n  color: #ffe7d1;\n  font-weight: 700;\n}\n\n.love-metrics {\n  margin-top: 30px;\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: 14px;\n}\n\n.love-metrics article,\n.feature-tile,\n.panel-card {\n  border-radius: 24px;\n  border: 1px solid var(--line);\n  background: rgba(255, 255, 255, 0.04);\n}\n\n.love-metrics article {\n  padding: 18px;\n}\n\n.love-metrics strong {\n  display: block;\n  font-size: 1.3rem;\n  line-height: 1;\n}\n\n.love-metrics span {\n  display: block;\n  margin-top: 10px;\n  color: var(--mist);\n  line-height: 1.5;\n}\n\n.love-panel {\n  min-height: 640px;\n  padding: 24px;\n  background: linear-gradient(180deg, rgba(13, 23, 35, 0.96), rgba(8, 13, 21, 0.92));\n}\n\n.panel-orbit {\n  position: absolute;\n  border-radius: 999px;\n  filter: blur(6px);\n}\n\n.panel-orbit-one {\n  top: 40px;\n  right: 36px;\n  width: 160px;\n  height: 160px;\n  background: radial-gradient(circle, rgba(255, 123, 114, 0.35), transparent 70%);\n}\n\n.panel-orbit-two {\n  bottom: 60px;\n  left: 12px;\n  width: 180px;\n  height: 180px;\n  background: radial-gradient(circle, rgba(255, 179, 107, 0.22), transparent 72%);\n}\n\n.panel-badge {\n  position: relative;\n  z-index: 1;\n  display: inline-flex;\n  padding: 10px 14px;\n  border-radius: 999px;\n  background: rgba(255, 255, 255, 0.08);\n  color: #ffd8c8;\n}\n\n.panel-card {\n  position: relative;\n  z-index: 1;\n  margin-top: 18px;\n  padding: 24px;\n}\n\n.panel-label {\n  color: #ffcfb9;\n}\n\n.panel-card h2 {\n  margin: 14px 0 0;\n  font-size: 2rem;\n  line-height: 1.1;\n  color: var(--cream);\n}\n\n.panel-text {\n  margin: 14px 0 0;\n  color: var(--mist);\n  line-height: 1.7;\n}\n\n.feature-list {\n  position: relative;\n  z-index: 1;\n  margin-top: 18px;\n  display: grid;\n  gap: 12px;\n}\n\n.feature-tile {\n  padding: 16px;\n  display: flex;\n  gap: 14px;\n  align-items: flex-start;\n}\n\n.feature-tile span {\n  display: inline-flex;\n  min-width: 40px;\n  color: #ffc8ae;\n  font-size: 0.8rem;\n  font-weight: 800;\n  letter-spacing: 0.14em;\n}\n\n.feature-tile strong {\n  display: block;\n  font-size: 1rem;\n  line-height: 1.5;\n}\n\n@media (max-width: 900px) {\n  .love-shell {\n    padding: 18px;\n  }\n\n  .love-hero {\n    grid-template-columns: 1fr;\n  }\n\n  .love-copy {\n    padding: 28px;\n  }\n\n  .love-metrics {\n    grid-template-columns: 1fr;\n  }\n\n  .love-panel {\n    min-height: auto;\n  }\n}`,
@@ -28,6 +36,14 @@ const roomTemplates = {
     python: {
       python: 'name = input() or "World"\nprint(f"Hello, {name}!")',
       pythonInput: 'World',
+    },
+    c: {
+      c: '#include <stdio.h>\n\nint main(void) {\n  char name[128];\n  if (!fgets(name, sizeof(name), stdin)) {\n    printf("Hello, World!\\n");\n    return 0;\n  }\n  printf("Hello, %s", name);\n  return 0;\n}\n',
+      cInput: 'World\n',
+    },
+    cpp: {
+      cpp: '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n  string name;\n  getline(cin, name);\n  if (name.empty()) {\n    name = "World";\n  }\n  cout << "Hello, " << name << "!" << \'\\n\';\n  return 0;\n}\n',
+      cppInput: 'World',
     },
     react: {
       react: `function App() {\n  const [loveCount, setLoveCount] = useState(128);\n  const features = [\n    "Real-time editing with your team",\n    "Fast JSX and CSS experiments",\n    "A workspace that keeps your ideas together"\n  ];\n\n  return (\n    <main className="love-shell">\n      <section className="love-hero">\n        <div className="love-copy">\n          <p className="love-kicker">Made with love in Kodikos</p>\n          <h1>Build together, ship together, and enjoy the process.</h1>\n          <p className="love-lede">\n            This project is made with love for collaborative builders who want a beautiful place to sketch, test, and refine React ideas live.\n          </p>\n\n          <div className="love-actions">\n            <button className="love-button" onClick={() => setLoveCount((value) => value + 1)}>\n              Send more love\n            </button>\n            <span className="love-pill">{loveCount} creators inspired</span>\n          </div>\n\n          <div className="love-metrics">\n            <article>\n              <strong>Live</strong>\n              <span>Edit React and CSS side by side with instant feedback.</span>\n            </article>\n            <article>\n              <strong>Shared</strong>\n              <span>Create together without losing the flow of the idea.</span>\n            </article>\n            <article>\n              <strong>Loved</strong>\n              <span>A starter page that feels crafted instead of empty.</span>\n            </article>\n          </div>\n        </div>\n\n        <aside className="love-panel">\n          <div className="panel-orbit panel-orbit-one"></div>\n          <div className="panel-orbit panel-orbit-two"></div>\n\n          <div className="panel-badge">Project starter</div>\n\n          <div className="panel-card">\n            <p className="panel-label">Why this exists</p>\n            <h2>A collaborative studio for ideas that deserve a nicer beginning.</h2>\n            <p className="panel-text">\n              Start with a thoughtful default, then remix every part of it into your own product, landing page, or experiment.\n            </p>\n          </div>\n\n          <div className="feature-list">\n            {features.map((item, index) => (\n              <div className="feature-tile" key={item}>\n                <span>0{index + 1}</span>\n                <div>\n                  <strong>{item}</strong>\n                </div>\n              </div>\n            ))}\n          </div>\n        </aside>\n      </section>\n    </main>\n  );\n}`,
@@ -230,6 +246,8 @@ const getUserRoomAnalytics = async (req, res) => {
         vanilla: 0,
         react: 0,
         python: 0,
+        c: 0,
+        cpp: 0,
       },
     });
 
@@ -344,7 +362,7 @@ const updateRoom = async (req, res) => {
     if (typeof title === 'string' && title.trim()) {
       room.title = title.trim();
     }
-    if (language === 'vanilla' || language === 'react' || language === 'python') {
+    if (language === 'vanilla' || language === 'react' || language === 'python' || language === 'c' || language === 'cpp') {
       room.language = language;
     }
     if (typeof thumbnail === 'string') {
@@ -569,6 +587,10 @@ const remixCommunityProject = async (req, res) => {
       reactCss: sourceRoom.code?.reactCss || '',
       python: sourceRoom.code?.python || '',
       pythonInput: sourceRoom.code?.pythonInput || '',
+      c: sourceRoom.code?.c || '',
+      cInput: sourceRoom.code?.cInput || '',
+      cpp: sourceRoom.code?.cpp || '',
+      cppInput: sourceRoom.code?.cppInput || '',
     };
 
     const remixedRoom = await Room.create({
@@ -779,6 +801,10 @@ const createRoomSnapshot = async (req, res) => {
       reactCss: code.reactCss || '',
       python: code.python || '',
       pythonInput: code.pythonInput || '',
+      c: code.c || '',
+      cInput: code.cInput || '',
+      cpp: code.cpp || '',
+      cppInput: code.cppInput || '',
     };
 
     const latestSnapshot = room.snapshots[room.snapshots.length - 1];

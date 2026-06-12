@@ -56,6 +56,10 @@ const snapshotSchema = new mongoose.Schema(
       reactCss: { type: String, default: '' },
       python: { type: String, default: '' },
       pythonInput: { type: String, default: '' },
+      c: { type: String, default: '' },
+      cInput: { type: String, default: '' },
+      cpp: { type: String, default: '' },
+      cppInput: { type: String, default: '' },
     },
   },
   {
@@ -167,7 +171,7 @@ const roomSchema = new mongoose.Schema(
     },
     language: {
       type: String,
-      enum: ['vanilla', 'react', 'python'],
+      enum: ['vanilla', 'react', 'python', 'c', 'cpp'],
       default: 'vanilla',
     },
     code: {
@@ -178,6 +182,10 @@ const roomSchema = new mongoose.Schema(
       reactCss: { type: String, default: '' },
       python: { type: String, default: '' },
       pythonInput: { type: String, default: '' },
+      c: { type: String, default: '' },
+      cInput: { type: String, default: '' },
+      cpp: { type: String, default: '' },
+      cppInput: { type: String, default: '' },
     },
     template: {
       type: String,

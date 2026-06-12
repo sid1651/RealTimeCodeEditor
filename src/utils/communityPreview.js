@@ -54,9 +54,9 @@ const buildReactSrcDoc = (room) => {
   </html>`;
 };
 
-const buildPythonSrcDoc = (room) => {
-  const pythonCode = sanitizeForHtml(room.code?.python || 'print("Hello, World!")');
-  const pythonInput = sanitizeForHtml(room.code?.pythonInput || '');
+const buildCompiledSrcDoc = ({ code = '', input = '', title = 'Terminal Room', compiler = '' }) => {
+  const safeCode = sanitizeForHtml(code);
+  const safeInput = sanitizeForHtml(input);
 
   return `<!DOCTYPE html>
   <html lang="en">
@@ -129,14 +129,14 @@ const buildPythonSrcDoc = (room) => {
     <body>
       <div class="shell">
         <div class="bar">
-          <span class="badge"><span class="dot"></span> Python Room</span>
+          <span class="badge"><span class="dot"></span> ${title}</span>
           <span>Terminal Preview</span>
         </div>
         <div class="meta">
-          <span>Compiler: python-3.14</span>
-          <span>Shared input: ${pythonInput || '(empty)'}</span>
+          <span>Compiler: ${compiler || '(custom)'}</span>
+          <span>Shared input: ${safeInput || '(empty)'}</span>
         </div>
-        <pre><code>${pythonCode}</code></pre>
+        <pre><code>${safeCode}</code></pre>
       </div>
     </body>
   </html>`;
@@ -146,6 +146,25 @@ export const getCommunityPreviewSrcDoc = (room) => (
   room.language === 'react'
     ? buildReactSrcDoc(room)
     : room.language === 'python'
-      ? buildPythonSrcDoc(room)
+      ? buildCompiledSrcDoc({
+        code: room.code?.python || 'print("Hello, World!")',
+        input: room.code?.pythonInput || '',
+        title: 'Python Room',
+        compiler: 'python-3.14',
+      })
+      : room.language === 'c'
+        ? buildCompiledSrcDoc({
+          code: room.code?.c || '#include <stdio.h>',
+          input: room.code?.cInput || '',
+          title: 'C Room',
+          compiler: 'gcc-15',
+        })
+        : room.language === 'cpp'
+          ? buildCompiledSrcDoc({
+            code: room.code?.cpp || '#include <iostream>',
+            input: room.code?.cppInput || '',
+            title: 'C++ Room',
+            compiler: 'g++-15',
+          })
     : buildVanillaSrcDoc(room)
 );
