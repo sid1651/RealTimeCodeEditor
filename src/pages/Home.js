@@ -89,9 +89,13 @@ const Home = () => {
             setCreatedRoomId(id);
             setRole('editor');
             toast.success('Created a new room');
-            navigate('/dashboard', {
+            
+            const destination = getRoomRoute(mode, id);
+            navigate(destination, {
                 state: {
-                    createdRoomId: id,
+                    username: user?.name || 'Creator',
+                    role: 'editor',
+                    participantId: uuidV4(),
                 },
             });
         } catch (error) {

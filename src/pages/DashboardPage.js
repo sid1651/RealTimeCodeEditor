@@ -50,6 +50,16 @@ const ONBOARDING_STEPS = [
   },
 ];
 
+const SUPPORTED_LANGUAGES = [
+  { id: 'vanilla', label: 'HTML', tone: 'vanilla' },
+  { id: 'css', label: 'CSS', tone: 'react' },
+  { id: 'javascript', label: 'JavaScript', tone: 'python' },
+  { id: 'react', label: 'React Studio', tone: 'react' },
+  { id: 'python', label: 'Python', tone: 'python' },
+  { id: 'c', label: 'C', tone: 'c' },
+  { id: 'cpp', label: 'C++', tone: 'cpp' },
+];
+
 const formatRelativeTime = (timestamp) => {
   const value = new Date(timestamp).getTime();
   const deltaMinutes = Math.max(1, Math.floor((Date.now() - value) / 60000));
@@ -789,6 +799,24 @@ const DashboardPage = () => {
               </div>
             </div>
           </section>
+
+          {currentSection === 'dashboard' ? (
+            <section className="languageCarouselSection" aria-label="Supported languages">
+              <div className="languageCarouselViewport">
+                <div className="languageCarouselTrack">
+                  {[...SUPPORTED_LANGUAGES, ...SUPPORTED_LANGUAGES].map((language, index) => (
+                    <div
+                      key={`${language.id}-${index}`}
+                      className={`languageCarouselChip ${language.tone}`}
+                    >
+                      <span className="languageCarouselDot" aria-hidden="true" />
+                      <span>{language.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {currentSection === 'settings' ? (
             <section className="dashboardRoomsSection settingsSection">

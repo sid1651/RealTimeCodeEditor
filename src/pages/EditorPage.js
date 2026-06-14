@@ -723,9 +723,7 @@ const EditorPage = () => {
     );
   }
 
-  // ✅ Calculate dynamic height based on collapse state
   const visibleEditors = Object.values(collapseEditor).filter(c => !c).length;
-  const editorHeight = visibleEditors > 0 ? `${100 / visibleEditors}%` : '0';
   const formatSnapshotTime = (timestamp) => {
     const created = new Date(timestamp).getTime();
     const diffMinutes = Math.max(1, Math.floor((Date.now() - created) / 60000));
@@ -774,7 +772,7 @@ const EditorPage = () => {
           <div className='editorholder'>
             {/* JavaScript Editor */}
             {!collapseEditor.js && (
-              <div style={{ height: editorHeight }} className="editorContainer">
+              <div style={{ flex: visibleEditors > 0 ? '1 1 0' : '0 0 auto' }} className="editorContainer">
                 <div className="editorHeader">
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#facc15" /> JavaScript</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, js: true }))}><ChevronUp size={18} /></button>
@@ -801,7 +799,7 @@ const EditorPage = () => {
 
             {/* HTML Editor */}
             {!collapseEditor.html && (
-              <div style={{ height: editorHeight }} className="editorContainer">
+              <div style={{ flex: visibleEditors > 0 ? '1 1 0' : '0 0 auto' }} className="editorContainer">
                 <div className="editorHeader">
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#ef4444" /> HTML</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, html: true }))}><ChevronUp size={18} /></button>
@@ -828,7 +826,7 @@ const EditorPage = () => {
 
             {/* CSS Editor */}
             {!collapseEditor.css && (
-              <div style={{ height: editorHeight }} className="editorContainer">
+              <div style={{ flex: visibleEditors > 0 ? '1 1 0' : '0 0 auto' }} className="editorContainer">
                 <div className="editorHeader">
                   <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}><Code2 size={16} color="#3b82f6" /> CSS</span>
                   <button className="collapse-editor-btn" onClick={() => setCollapseEditor(prev => ({ ...prev, css: true }))}><ChevronUp size={18} /></button>

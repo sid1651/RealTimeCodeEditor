@@ -2810,6 +2810,99 @@ h1, h2, h3, h4, h5, h6 {
   padding: 18px;
 }
 
+.languageCarouselSection {
+  position: relative;
+  overflow: hidden;
+  padding: 14px 0;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(9, 14, 27, 0.94), rgba(8, 14, 28, 0.82)),
+    radial-gradient(circle at left center, rgba(103, 232, 249, 0.08), transparent 30%);
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.28);
+}
+
+.languageCarouselViewport {
+  position: relative;
+  overflow: hidden;
+}
+
+.languageCarouselViewport::before,
+.languageCarouselViewport::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 84px;
+  pointer-events: none;
+}
+
+.languageCarouselViewport::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(9, 14, 27, 0.98), transparent);
+}
+
+.languageCarouselViewport::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(9, 14, 27, 0.98), transparent);
+}
+
+.languageCarouselTrack {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  padding: 0 18px;
+  animation: languageCarouselMarquee 24s linear infinite;
+}
+
+.languageCarouselChip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
+  min-height: 50px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 23, 42, 0.82);
+  color: #e2e8f0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.languageCarouselDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 16px currentColor;
+}
+
+.languageCarouselChip.vanilla {
+  color: #fde68a;
+}
+
+.languageCarouselChip.react {
+  color: #67e8f9;
+}
+
+.languageCarouselChip.python {
+  color: #93c5fd;
+}
+
+.languageCarouselChip.c {
+  color: #fcd34d;
+}
+
+.languageCarouselChip.cpp {
+  color: #ddd6fe;
+}
+
 .dashboardPanelHead {
   display: flex;
   align-items: center;
@@ -2952,6 +3045,15 @@ h1, h2, h3, h4, h5, h6 {
   100% {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes languageCarouselMarquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 6px));
   }
 }
 
@@ -4528,6 +4630,28 @@ h1, h2, h3, h4, h5, h6 {
 
   .roomGrid {
     grid-template-columns: 1fr;
+  }
+
+  .languageCarouselSection {
+    padding: 14px 0;
+  }
+
+  .languageCarouselViewport::before,
+  .languageCarouselViewport::after {
+    width: 36px;
+  }
+
+  .languageCarouselTrack {
+    gap: 10px;
+    padding: 0 14px;
+    animation-duration: 18s;
+  }
+
+  .languageCarouselChip {
+    min-width: 120px;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 0.78rem;
   }
 
   .dashboardPage {

@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { backend } from "../socket";
@@ -8,12 +8,20 @@ import GoogleAuthButton from "../components/GoogleAuthButton";
 
 export default function Signlog() {
 const navigate=useNavigate();
+const location = useLocation();
 const { login } = useAuth();
 const [formData, setFormData] = useState({
   email: '',
   password: '',
 });
 const [isSubmitting, setIsSubmitting] = useState(false);
+const redirectTarget = useMemo(() => {
+  if (typeof location.state?.from === 'string' && location.state.from.startsWith('/')) {
+    return location.state.from;
+  }
+
+  return '/dashboard';
+}, [location.state]);
 
 const handleChange = (e) => {
   const { name, value } = e.target;
@@ -43,7 +51,7 @@ const handleSubmit = async (e) => {
       user: data.user,
     });
     toast.success('Signed in successfully.');
-    navigate('/dashboard');
+    navigate(redirectTarget, { replace: true });
   } catch (error) {
     const responseData = error.response?.data;
 
@@ -51,6 +59,7 @@ const handleSubmit = async (e) => {
       toast.error(responseData.message || 'Please verify your email before signing in.');
       navigate('/signup', {
         state: {
+          from: redirectTarget,
           email: responseData.email || formData.email.trim().toLowerCase(),
           needsVerification: true,
         },
@@ -77,13 +86,13 @@ const handleGoogleCredential = useCallback(async (credential) => {
       user: data.user,
     });
     toast.success(data.message || 'Signed in with Google successfully.');
-    navigate('/dashboard');
+    navigate(redirectTarget, { replace: true });
   } catch (error) {
     toast.error(error.response?.data?.message || 'Unable to sign in with Google.');
   } finally {
     setIsSubmitting(false);
   }
-}, [login, navigate]);
+}, [login, navigate, redirectTarget]);
 
   return (
     <div className="auth-root">
@@ -174,7 +183,13 @@ const handleGoogleCredential = useCallback(async (credential) => {
 
             <div className="switch-row">
               <span>New here?</span>
-              <button type="button" onClick={() => navigate('/signup')} className="link-btn">Create an account</button>
+              <button
+                type="button"
+                onClick={() => navigate('/signup', { state: { from: redirectTarget } })}
+                className="link-btn"
+              >
+                Create an account
+              </button>
             </div>
           </form>
         </div>

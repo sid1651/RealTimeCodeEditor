@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -21,6 +21,13 @@ function Signup() {
     );
     const [isOtpStep, setIsOtpStep] = useState(Boolean(location.state?.needsVerification));
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const redirectTarget = useMemo(() => {
+        if (typeof location.state?.from === 'string' && location.state.from.startsWith('/')) {
+            return location.state.from;
+        }
+
+        return '/dashboard';
+    }, [location.state]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -83,7 +90,7 @@ function Signup() {
                 user: data.user,
             });
             toast.success('Email verified successfully.');
-            navigate('/dashboard');
+            navigate(redirectTarget, { replace: true });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Unable to verify OTP.');
         } finally {
@@ -125,13 +132,13 @@ function Signup() {
                 user: data.user,
             });
             toast.success(data.message || 'Signed in with Google successfully.');
-            navigate('/dashboard');
+            navigate(redirectTarget, { replace: true });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Unable to sign in with Google.');
         } finally {
             setIsSubmitting(false);
         }
-    }, [login, navigate]);
+    }, [login, navigate, redirectTarget]);
 
     return (
         <div className="signup-root">
@@ -262,7 +269,7 @@ function Signup() {
                                         <button
                                             type="button"
                                             className="signup-link-btn"
-                                            onClick={() => navigate('/signin')}
+                                            onClick={() => navigate('/signin', { state: { from: redirectTarget } })}
                                         >
                                             Sign In
                                         </button>

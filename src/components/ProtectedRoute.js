@@ -11,7 +11,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/signup" state={{ from: location.pathname }} replace />;
+    return (
+      <Navigate
+        to="/signin"
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+        replace
+      />
+    );
   }
 
   return children;

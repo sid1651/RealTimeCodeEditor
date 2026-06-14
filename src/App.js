@@ -58,11 +58,11 @@ function App() {
           <Route path="/community/:roomId" element={<CommunityProjectPage />} ></Route>
           <Route path="/embed/:roomId" element={<CommunityEmbedPage />} ></Route>
           <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} ></Route>
-          <Route path="/react-studio/:roomId" element={<ReactStudioPage />} ></Route>
-          <Route path="/python-room/:roomId" element={<PythonRoomPage />} ></Route>
-          <Route path="/c-room/:roomId" element={<CRoomPage />} ></Route>
-          <Route path="/cpp-room/:roomId" element={<CppRoomPage />} ></Route>
-          <Route path="/editor/:roomId" element={<EditorPage />} ></Route>
+          <Route path="/react-studio/:roomId" element={<ProtectedRoute><ReactStudioPage /></ProtectedRoute>} ></Route>
+          <Route path="/python-room/:roomId" element={<ProtectedRoute><PythonRoomPage /></ProtectedRoute>} ></Route>
+          <Route path="/c-room/:roomId" element={<ProtectedRoute><CRoomPage /></ProtectedRoute>} ></Route>
+          <Route path="/cpp-room/:roomId" element={<ProtectedRoute><CppRoomPage /></ProtectedRoute>} ></Route>
+          <Route path="/editor/:roomId" element={<ProtectedRoute><EditorPage /></ProtectedRoute>} ></Route>
         </Routes>
       </BrowserRouter>
     </AuthProvider>
