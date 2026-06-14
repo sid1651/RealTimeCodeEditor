@@ -6,9 +6,9 @@
     "node": "18.x"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "axios": "^1.12.1",
     "bcryptjs": "^3.0.2",
-    "codemirror": "^5.65.16",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -16,6 +16,7 @@
     "framer-motion": "^12.38.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.14.0",
+    "monaco-editor": "^0.55.1",
     "mongoose": "^8.18.0",
     "nodemailer": "^7.0.5",
     "react": "^19.1.1",

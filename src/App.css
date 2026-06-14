@@ -1651,14 +1651,6 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.01em;
 }
 
-.CodeMirror.cm-s-dracula.CodeMirror-readonly {
-  background: #17171f;
-}
-
-.CodeMirror-readonly .CodeMirror-cursor {
-  display: none;
-}
-
 .collapse-editor-btn {
   background: transparent;
   border: none;
@@ -1691,17 +1683,6 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-card-hover);
 }
 
-/* CodeMirror styling */
-.CodeMirror {
-  height: 100% !important;
-  min-height: 0 !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 0.95rem;
-  background: transparent !important;
-  color: #e5eefc !important;
-  line-height: 1.65;
-}
-
 .codeEditorShell {
   flex: 1 1 auto;
   min-height: 0;
@@ -1712,54 +1693,25 @@ h1, h2, h3, h4, h5, h6 {
     linear-gradient(180deg, #181c28 0%, #10141d 100%);
 }
 
-.codeEditorShell .CodeMirror {
-  height: 100% !important;
+.monacoEditorShell .monaco-editor,
+.monacoEditorShell .monaco-editor-background,
+.monacoEditorShell .monaco-editor .margin {
+  background-color: transparent !important;
 }
 
-.codeEditorShell .CodeMirror-gutters {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border-right: 1px solid rgba(148, 163, 184, 0.1) !important;
+.monacoEditorShell .monaco-editor {
+  font-family: 'JetBrains Mono', monospace !important;
 }
 
-.codeEditorShell .CodeMirror-linenumber {
-  color: #60708b !important;
-  padding: 0 10px 0 12px !important;
+.remoteCursorCaret {
+  border-left: 2px solid #67e8f9;
+  height: 1.2em;
+  margin-left: -1px;
 }
 
-.codeEditorShell .CodeMirror-lines {
-  padding: 14px 0 18px !important;
-}
-
-.codeEditorShell .CodeMirror pre.CodeMirror-line,
-.codeEditorShell .CodeMirror pre.CodeMirror-line-like {
-  padding: 0 16px !important;
-}
-
-.codeEditorShell .CodeMirror-activeline-background {
-  background: rgba(103, 232, 249, 0.06) !important;
-}
-
-.codeEditorShell .CodeMirror-cursor {
-  border-left: 2px solid #67e8f9 !important;
-}
-
-.codeEditorShell .CodeMirror-selected {
-  background: rgba(103, 232, 249, 0.16) !important;
-}
-
-.codeEditorShell .CodeMirror-scrollbar-filler,
-.codeEditorShell .CodeMirror-gutter-filler {
-  background: transparent !important;
-}
-
-.CodeMirror-scroll {
-  max-height: 100% !important;
-  overflow: auto !important;
-}
-
-.CodeMirror-sizer,
-.CodeMirror-lines {
-  min-height: 100% !important;
+.remoteCursorSelection,
+.remoteCursorSelectionInline {
+  background-color: rgba(103, 232, 249, 0.16);
 }
 
 .previwcolapsstyle {
