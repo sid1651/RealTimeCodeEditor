@@ -12,6 +12,7 @@ import { ChevronDown, ChevronUp, Code2, LayoutTemplate, TerminalSquare, Save, Ro
 import { useAuth } from '../context/AuthContext';
 import { getRoomById, inviteUserToRoom, updateRoom } from '../utils/roomApi';
 import { checkoutRoomSnapshot, createRoomSnapshot, getRoomSnapshots } from '../utils/snapshotApi';
+import { getRoomParticipantId } from '../utils/roomParticipant';
 
 const DEFAULT_REACT_CODE = `function App() {
   const [loveCount, setLoveCount] = useState(128);
@@ -534,7 +535,7 @@ const ReactStudioPage = () => {
   const queryRole = new URLSearchParams(location.search).get('role');
   const username = location.state?.username || user?.name || 'Anonymous';
   const initialRoleRef = useRef(location.state?.role === 'spectator' || queryRole === 'spectator' ? 'spectator' : 'editor');
-  const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
+  const participantIdRef = useRef(getRoomParticipantId(roomId, location.state?.participantId));
   const [userRole, setUserRole] = useState(initialRoleRef.current);
   const userRoleRef = useRef(initialRoleRef.current);
   const isSpectator = userRole === 'spectator';

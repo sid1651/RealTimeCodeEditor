@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '../components/Editor';
 import EditorHTML from '../components/Editorhtml';
 import EditorCSS from '../components/Editorcss';
@@ -15,9 +15,23 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import { getRoomById, inviteUserToRoom, updateRoom } from '../utils/roomApi';
 import { checkoutRoomSnapshot, createRoomSnapshot, getRoomSnapshots } from '../utils/snapshotApi';
+import { getRoomParticipantId } from '../utils/roomParticipant';
 
+const sanitizePreviewScript = (value = '') => `${value}`.replace(/<\/script>/gi, '<\\/script>');
 
-// 
+const buildPreviewDocument = ({ html = '', css = '', javascript = '' }) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Preview</title>
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${sanitizePreviewScript(javascript)}</script>
+</body>
+</html>`;
 
 const EditorPage = () => {
   const socketJSRef = useRef(null);
@@ -35,7 +49,7 @@ const EditorPage = () => {
   const queryRole = new URLSearchParams(location.search).get('role');
   const username = location.state?.username || user?.name || 'Anonymous';
   const initialRoleRef = useRef(location.state?.role === 'spectator' || queryRole === 'spectator' ? 'spectator' : 'editor');
-  const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
+  const participantIdRef = useRef(getRoomParticipantId(roomId, location.state?.participantId));
   const [userRole, setUserRole] = useState(initialRoleRef.current);
   const userRoleRef = useRef(initialRoleRef.current);
   const isSpectator = userRole === 'spectator';
@@ -78,8 +92,6 @@ const EditorPage = () => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [isInviteSending, setIsInviteSending] = useState(false);
-
-  const iframeRef = useRef(null);
 
   useEffect(() => {
     if (isChatOpen) {
@@ -521,29 +533,11 @@ const EditorPage = () => {
     }
   };
 
-  // --- LIVE PREVIEW UPDATE ---
-  useEffect(() => {
-    if (iframeRef.current) {
-      const doc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document;
-      doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Live Preview</title>
-          <style>${cssCode || ''}</style>
-        </head>
-        <body>
-          ${htmlCode || ''}
-          <script>${jsCode || ''}</script>
-        </body>
-        </html>
-      `);
-      doc.close();
-    }
-  }, [htmlCode, cssCode, jsCode]);
+  const previewDocument = useMemo(() => buildPreviewDocument({
+    html: htmlCode || '',
+    css: cssCode || '',
+    javascript: jsCode || '',
+  }), [cssCode, htmlCode, jsCode]);
 
   // --- RUN CODE (PISTON API) ---
   const runCode = async () => {
@@ -881,7 +875,11 @@ const EditorPage = () => {
               </div>
             </h3>
             {!Colaps && activeTab === 'preview' && (
-              <iframe ref={iframeRef} title="Live Preview" style={{ width: '100%', height: 'calc(100% - 50px)', border: 'none', backgroundColor: '#fff' }} />
+              <iframe
+                title="Live Preview"
+                srcDoc={previewDocument}
+                style={{ width: '100%', height: 'calc(100% - 50px)', border: 'none', backgroundColor: '#fff' }}
+              />
             )}
             {!Colaps && activeTab === 'terminal' && (
               <div style={{ padding: '16px', backgroundColor: '#1e1e2e', color: '#f8f8f2', fontFamily: 'monospace', height: 'calc(100% - 50px)', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>

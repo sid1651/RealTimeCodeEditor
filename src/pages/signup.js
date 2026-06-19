@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { backend } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import GoogleAuthButton from "../components/GoogleAuthButton";
+import GitHubAuthButton from "../components/GitHubAuthButton";
 
 function Signup() {
     const navigate = useNavigate();
@@ -263,6 +264,14 @@ function Signup() {
                                         disabled={isSubmitting}
                                         onCredential={handleGoogleCredential}
                                     />
+
+                                    <GitHubAuthButton
+                                        disabled={isSubmitting}
+                                        redirectTarget={redirectTarget}
+                                        intent="signup"
+                                    >
+                                        Sign up with GitHub
+                                    </GitHubAuthButton>
 
                                     <div className="signup-switch">
                                         <span>Already have an account?</span>

@@ -23,6 +23,7 @@ import { executeCode } from '../utils/executeApi';
 import { getRoomRoute } from '../utils/roomLanguage';
 import { checkoutRoomSnapshot, createRoomSnapshot, getRoomSnapshots } from '../utils/snapshotApi';
 import { getRoomById, inviteUserToRoom, updateRoom } from '../utils/roomApi';
+import { getRoomParticipantId } from '../utils/roomParticipant';
 
 const ROOM_CONFIG = {
   python: {
@@ -141,7 +142,7 @@ const CompiledRoomPage = ({ language }) => {
   const queryRole = new URLSearchParams(location.search).get('role');
   const username = location.state?.username || user?.name || 'Anonymous';
   const initialRoleRef = useRef(location.state?.role === 'spectator' || queryRole === 'spectator' ? 'spectator' : 'editor');
-  const participantIdRef = useRef(location.state?.participantId || `participant-${Date.now()}`);
+  const participantIdRef = useRef(getRoomParticipantId(roomId, location.state?.participantId));
   const [userRole, setUserRole] = useState(initialRoleRef.current);
   const userRoleRef = useRef(initialRoleRef.current);
   const isSpectator = userRole === 'spectator';

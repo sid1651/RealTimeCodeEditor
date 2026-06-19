@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { backend } from "../socket";
 import { useAuth } from "../context/AuthContext";
 import GoogleAuthButton from "../components/GoogleAuthButton";
+import GitHubAuthButton from "../components/GitHubAuthButton";
 
 export default function Signlog() {
 const navigate=useNavigate();
@@ -179,6 +180,12 @@ const handleGoogleCredential = useCallback(async (credential) => {
               text="continue_with"
               disabled={isSubmitting}
               onCredential={handleGoogleCredential}
+            />
+
+            <GitHubAuthButton
+              disabled={isSubmitting}
+              redirectTarget={redirectTarget}
+              intent="signin"
             />
 
             <div className="switch-row">

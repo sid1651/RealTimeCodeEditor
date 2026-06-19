@@ -196,16 +196,20 @@ function getNamespaceAdapterRoom(namespace, roomId) {
 }
 
 function getAllConnectedClients(roomId, namespace) {
-  return Array.from(getNamespaceAdapterRoom(namespace, roomId) || []).map((socketId) => {
-    const info = userSocketMap[socketId] || {};
-    return {
+  return Array.from(getNamespaceAdapterRoom(namespace, roomId) || []).flatMap((socketId) => {
+    const info = userSocketMap[socketId];
+    if (!info) {
+      return [];
+    }
+
+    return [{
       socketId,
       username: info.username,
       role: info.role,
       participantId: info.participantId,
       isLeader: info.isLeader,
       userId: info.userId,
-    };
+    }];
   });
 }
 
@@ -214,6 +218,7 @@ function getRoomState(roomId) {
     roomStateMap[roomId] = {
       leaderParticipantId: null,
       pendingClients: [],
+      leaderReconnectTimer: null,
     };
   }
 
@@ -270,6 +275,34 @@ function promoteNextLeader(roomId) {
   });
 }
 
+function cancelLeaderPromotion(roomState) {
+  if (roomState?.leaderReconnectTimer) {
+    clearTimeout(roomState.leaderReconnectTimer);
+    roomState.leaderReconnectTimer = null;
+  }
+}
+
+function scheduleLeaderPromotion(roomId) {
+  const roomState = roomStateMap[roomId];
+  if (!roomState || roomState.leaderReconnectTimer) {
+    return;
+  }
+
+  roomState.leaderReconnectTimer = setTimeout(() => {
+    roomState.leaderReconnectTimer = null;
+    const leaderReconnected = getAllConnectedClients(roomId, '/js')
+      .some((client) => client.participantId === roomState.leaderParticipantId);
+
+    if (!leaderReconnected) {
+      promoteNextLeader(roomId);
+    }
+
+    broadcastRoomSnapshot(roomId);
+    emitJoinRequest(roomId);
+    cleanupRoomIfEmpty(roomId);
+  }, 5000);
+}
+
 function cleanupRoomIfEmpty(roomId) {
   const clients = getAllConnectedClients(roomId, '/js');
   const roomState = roomStateMap[roomId];
@@ -278,7 +311,7 @@ function cleanupRoomIfEmpty(roomId) {
     return;
   }
 
-  if (clients.length === 0 && roomState.pendingClients.length === 0) {
+  if (clients.length === 0 && roomState.pendingClients.length === 0 && !roomState.leaderReconnectTimer) {
     delete roomStateMap[roomId];
   }
 }
@@ -304,8 +337,9 @@ function setupNamespace(namespace) {
         const roomState = getRoomState(roomId);
         const clientsInRoom = getNamespaceAdapterRoom(namespace, roomId);
         const isFirst = !clientsInRoom || clientsInRoom.size === 0;
+        const isReturningLeader = roomState.leaderParticipantId === participantId;
 
-        if (!isFirst) {
+        if (!isFirst && !isReturningLeader) {
           const alreadyPending = roomState.pendingClients.some((client) => client.participantId === participantId);
           if (!alreadyPending) {
             roomState.pendingClients.push({
@@ -324,7 +358,10 @@ function setupNamespace(namespace) {
           return;
         }
 
-        roomState.leaderParticipantId = participantId;
+        if (isFirst || isReturningLeader) {
+          roomState.leaderParticipantId = participantId;
+          cancelLeaderPromotion(roomState);
+        }
       }
 
       const roomState = getRoomState(roomId);
@@ -508,14 +545,14 @@ function setupNamespace(namespace) {
         const roomState = getRoomState(roomId);
         const wasLeader = info.participantId && roomState.leaderParticipantId === info.participantId && namespace === '/js';
 
-        if (wasLeader) {
-          roomState.leaderParticipantId = null;
-        }
-
         delete userSocketMap[socket.id];
 
         if (wasLeader) {
-          promoteNextLeader(roomId);
+          const leaderStillConnected = getAllConnectedClients(roomId, namespace)
+            .some((client) => client.participantId === roomState.leaderParticipantId);
+          if (!leaderStillConnected) {
+            scheduleLeaderPromotion(roomId);
+          }
         }
 
         const clients = namespace === '/js' ? getAllConnectedClients(roomId, namespace) : undefined;

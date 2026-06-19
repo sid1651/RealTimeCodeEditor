@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './pages/landingpage';
 import Signlog from './pages/signlog';
 import Signup from './pages/signup';
+import GitHubAuthCallback from './pages/GitHubAuthCallback';
 import ReactStudioPage from './pages/ReactStudioPage';
 import PythonRoomPage from './pages/PythonRoomPage';
 import CRoomPage from './pages/CRoomPage';
@@ -46,6 +47,7 @@ function App() {
         <Routes>
           <Route path="/signup" element={<Signup/>}></Route>
           <Route path="/signin" element={<Signlog/>}></Route>
+          <Route path="/auth/github/callback" element={<GitHubAuthCallback />}></Route>
           <Route path="/" element={<PublicHomeRoute />} ></Route>
           <Route path="/landing" element ={<LandingPage/>}></Route>
           <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} ></Route>

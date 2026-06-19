@@ -14,10 +14,25 @@ const sanitizeUser = (user) => ({
   email: user.email,
   phone: user.phone || '',
   avatar: user.avatar || '',
+  authProvider: user.authProvider || 'local',
   emailVerified: Boolean(user.emailVerified),
   hasCompletedOnboarding: user.hasCompletedOnboarding !== false,
   createdAt: user.createdAt,
 });
+
+const getSocialProviderLabels = (user) => {
+  const providers = [];
+
+  if (user.googleId) {
+    providers.push('Google');
+  }
+
+  if (user.githubId) {
+    providers.push('GitHub');
+  }
+
+  return providers;
+};
 
 const createOtp = () => `${crypto.randomInt(100000, 1000000)}`;
 const hashOtp = (otp) => crypto.createHash('sha256').update(otp).digest('hex');
@@ -59,6 +74,92 @@ const verifyGoogleCredential = async (credential) => {
   }
 
   return payload;
+};
+
+const getGitHubClientId = () => process.env.GITHUB_CLIENT_ID || process.env.REACT_APP_GITHUB_CLIENT_ID;
+
+const exchangeGitHubCode = async ({ code, redirectUri = '' }) => {
+  const clientId = getGitHubClientId();
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('GitHub authentication is not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in the server environment.');
+  }
+
+  const response = await fetch('https://github.com/login/oauth/access_token', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      redirect_uri: redirectUri || undefined,
+    }),
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok || payload.error) {
+    throw new Error(payload.error_description || payload.error || 'Unable to exchange GitHub authorization code.');
+  }
+
+  if (!payload.access_token) {
+    throw new Error('GitHub did not return an access token.');
+  }
+
+  return payload.access_token;
+};
+
+const fetchGitHubUserProfile = async (accessToken) => {
+  const commonHeaders = {
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${accessToken}`,
+    'User-Agent': 'Kodikos',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+
+  const profileResponse = await fetch('https://api.github.com/user', {
+    headers: commonHeaders,
+  });
+  const profile = await profileResponse.json();
+
+  if (!profileResponse.ok) {
+    throw new Error(profile.message || 'Unable to fetch GitHub profile.');
+  }
+
+  let email = profile.email || '';
+
+  if (!email) {
+    const emailResponse = await fetch('https://api.github.com/user/emails', {
+      headers: commonHeaders,
+    });
+    const emailPayload = await emailResponse.json();
+
+    if (!emailResponse.ok) {
+      throw new Error(emailPayload.message || 'Unable to fetch GitHub email addresses.');
+    }
+
+    const primaryEmail = Array.isArray(emailPayload)
+      ? emailPayload.find((item) => item.primary && item.verified) || emailPayload.find((item) => item.verified)
+      : null;
+
+    email = primaryEmail?.email || '';
+  }
+
+  if (!email) {
+    throw new Error('Your GitHub account does not expose a verified email address.');
+  }
+
+  return {
+    id: profile.id ? String(profile.id) : '',
+    login: profile.login || '',
+    name: profile.name || profile.login || email.split('@')[0],
+    email,
+    avatar: profile.avatar_url || '',
+  };
 };
 
 const registerUser = async (req, res) => {
@@ -129,7 +230,14 @@ const loginUser = async (req, res) => {
     }
 
     if (!user.password) {
-      return res.status(401).json({ message: 'This account uses Google sign-in. Continue with Google instead.' });
+      const providers = getSocialProviderLabels(user);
+      const providerMessage = providers.length
+        ? `${providers.join(' or ')} sign-in`
+        : 'social sign-in';
+
+      return res.status(401).json({
+        message: `This account uses ${providerMessage}. Continue with ${providerMessage} instead.`,
+      });
     }
 
     if (!user.emailVerified) {
@@ -188,6 +296,10 @@ const googleAuth = async (req, res) => {
       user.emailVerified = true;
       user.googleId = user.googleId || googleUser.sub || '';
       user.avatar = googleUser.picture || user.avatar || '';
+
+      if (!user.password && user.authProvider === 'local') {
+        user.authProvider = 'google';
+      }
     }
 
     await user.save();
@@ -200,6 +312,54 @@ const googleAuth = async (req, res) => {
     });
   } catch (error) {
     return res.status(401).json({ message: 'Unable to sign in with Google.', details: error.message });
+  }
+};
+
+const githubAuth = async (req, res) => {
+  try {
+    const { code, redirectUri = '' } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ message: 'GitHub authorization code is required.' });
+    }
+
+    const accessToken = await exchangeGitHubCode({ code, redirectUri });
+    const githubUser = await fetchGitHubUserProfile(accessToken);
+    const normalizedEmail = githubUser.email.trim().toLowerCase();
+
+    let user = await User.findOne({ email: normalizedEmail });
+    const isNewUser = !user;
+
+    if (!user) {
+      user = new User({
+        name: githubUser.name,
+        email: normalizedEmail,
+        authProvider: 'github',
+        githubId: githubUser.id || '',
+        avatar: githubUser.avatar || '',
+        emailVerified: true,
+        hasCompletedOnboarding: false,
+      });
+    } else {
+      user.emailVerified = true;
+      user.githubId = user.githubId || githubUser.id || '';
+      user.avatar = githubUser.avatar || user.avatar || '';
+
+      if (!user.password && user.authProvider === 'local') {
+        user.authProvider = 'github';
+      }
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Signed in with GitHub successfully.',
+      token: generateToken(user._id.toString()),
+      user: sanitizeUser(user),
+      isNewUser,
+    });
+  } catch (error) {
+    return res.status(401).json({ message: 'Unable to sign in with GitHub.', details: error.message });
   }
 };
 
@@ -394,6 +554,7 @@ module.exports = {
   registerUser,
   loginUser,
   googleAuth,
+  githubAuth,
   verifyRegistrationOtp,
   resendRegistrationOtp,
   getCurrentUser,
